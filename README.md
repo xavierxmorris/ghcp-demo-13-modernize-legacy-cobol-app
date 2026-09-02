@@ -1,140 +1,128 @@
-# Modernizing  a Cobol accounting system to a Node.js application using GitHub Copilot
+# Modernising a legacy COBOL accounting system with GitHub Copilot
 
-This repo contains COBOL code for a simple accounting system. You can use GitHub Copilot to transform this code to a Node.js accounting system.
+A hands-on lab for migrating a COBOL account management system to Node.js **without
+silently changing what it does**.
 
-**Note: Keep in mind GitHub Copilot is an AI pair programmer that helps you write code. It is not a code generator and is using generative
-models trained on public code. It may provide completions that are not perfect, safe, or otherwise suitable for production. Always review suggestions
-and take a trust but verify approach.**
+<img src="images/cobol_to_nodejs.png" alt="COBOL to Node.js" width="800"/>
 
-<img src="images/cobol_to_nodejs.png" alt="Cobol to Node.js" width="800"/>
+> This is a fork of [`continuous-copilot/modernize-legacy-cobol-app`](https://github.com/continuous-copilot/modernize-legacy-cobol-app),
+> rebuilt around an executable golden-master harness and the 2026 GitHub Copilot
+> customisation surface. See [`docs/WHATS-NEW.md`](docs/WHATS-NEW.md) for the full
+> list of changes and why each one was made.
 
-## Prerequisites
+---
 
-- Basic understanding of programming concepts.
-- Basic understanding of the COBOL programming language.
-- GitHub Copilot or GitHub Copilot Chat installed in your IDE or GitHub Codespace.
+## The point of this repository
 
-## Setup the development environment
+Ask any capable model to translate 90 lines of COBOL to JavaScript and you will get
+plausible, readable, confident code in seconds. On this program, that code is wrong in
+at least three ways that no reviewer would catch by reading it:
 
-### Option 1: Use an IDE that supports GitHub Copilot
+| What a careful port produces | What the COBOL actually does | Finding |
+| --- | --- | --- |
+| Credit `999000.00` onto `1000.00` → `1000000.00` | → `0.00`, reported as a **successful credit** | [`L-01`](docs/LEGACY-BEHAVIOR.md#l-01) |
+| Credit `-100.00` → balance falls to `900.00` | → balance **rises** to `1100.00` | [`L-02`](docs/LEGACY-BEHAVIOR.md#l-02) |
+| A working three-tier data layer, per the docs | `data.cob` is **dead code** and never executes | [`L-10`](docs/LEGACY-BEHAVIOR.md#l-10) |
 
-- IDE options for both GitHub Copilot and Copilot Chat:
-  - <img src="images/ide-vscode.png" alt="Visual Studio Code" width="20"/> Visual Studio Code
-  - <img src="images/ide-vs.png" alt="Visual Studio" width="20"/> Visual Studio
-  - <img src="images/ide-jetbrains.png" alt="JetBrains IDE" width="20"/> JetBrains IDE
+Better models do not fix this. They make it worse, because a more capable model writes
+a more convincing wrong answer. The problem is not reasoning quality — it is that the
+model was asked to translate a program it had no way to *observe*.
 
-#### For Visual Studio Code
-
-- Install the GitHub Copilot and GitHub Copilot Chat extensions for Visual Studio Code.
-- Install the COBOL extension for Visual Studio Code.
-
-### Option 2: Use a GitHub codespace
-
-- Create a new codespace in this repository. </br>
-![Codespace](images/codespace.png)
-
-- The configuration for the codespace is already set up with the required extensions.
-  - GitHub Copilot
-  - GitHub Copilot Chat
-  - COBOL
-  - Markdown All in One
-  - Mermaid Markdown
-  - python
-
-## About the program
-
-This COBOL program simulates an account management system. This program will involve multiple COBOL source files and perform various operations like crediting, debiting, viewing the balance, and even exiting the program. Here’s how you its structured:
-
-- Main Program (main.cob): The main program will handle the user interface and call subprograms for different operations.
-- Operations Program (operations.cob): This program will handle the actual operations like credit, debit, and view balance.
-- Data Storage Program (data.cob): This program will manage the storage of the account balance.
-
-## Steps to Compile and Run the Program
-
-- Option 1: Install COBOL compiler on MaC
-If you don't already have a COBOL compiler, you'll need to install one. Common COBOL compiler is GnuCOBOL: An open-source COBOL compiler. To Install , use brew:
+So this repository makes the legacy system's behaviour **executable** first, and only
+then migrates it.
 
 ```bash
-brew install gnucobol 
+npm run parity:node
+# 24/24 scenarios matched, 13 legacy defect(s) deliberately remediated.
+# Parity holds.
 ```
 
-- Option 2: Open the terminal in the GitHub codespace or Ubuntu Linux system and run the following command to install the COBOL compiler:
+---
+
+## Quick start
+
+Open in a [GitHub Codespace](https://codespaces.new/xavierxmorris/modernize-legacy-cobol-app)
+or the devcontainer — GnuCOBOL, Node and the Copilot extensions are configured — then:
 
 ```bash
-sudo apt-get update && \
-sudo apt-get install gnucobol
+npm run build:cobol    # compile the legacy system
+npm test               # 83 assertions: unit tests + both parity suites
 ```
 
-reference: [gnucobol](https://formulae.brew.sh/formula/gnucobol)
-
-- Compile, link and create executable: Link the object files together to create the final executable:
+Locally you need Node 20.11+ and GnuCOBOL:
 
 ```bash
-cobc -x main.cob operations.cob data.cob -o accountsystem
+sudo apt-get update && sudo apt-get install -y gnucobol3   # Ubuntu/Debian
+brew install gnucobol                                      # macOS
 ```
 
-- Run the Program: Run the executable to start the account management system:
+> The Ubuntu package is `gnucobol3` or `gnucobol4`. Plain `gnucobol` is a transitional
+> package pulling the 4.0 pre-release, and on Ubuntu 20.04 it installs GnuCOBOL 2.2.
+> CI and the devcontainer pin 3.1.2. GnuCOBOL 3.1.2 and 4.0-early-dev were verified to
+> produce byte-identical output across all 24 scenarios.
+
+There is no `npm install`. The project has zero dependencies.
+
+---
+
+## Commands
 
 ```bash
-./accountsystem
+npm run parity:list      # every specified behaviour, strict vs quirk
+npm run parity:record    # re-record the golden master from the COBOL binary
+npm run parity:cobol     # prove the COBOL still matches its own golden master
+npm run parity:node      # prove the Node port matches the specification
+npm test                 # everything
 ```
 
-## Program Interaction Example
+The COBOL suites skip automatically when `build/accountsystem` is absent, so `npm test`
+works without a compiler.
 
-- Program starts with user input menu
+---
+
+## The workflow
+
+```
+characterise  →  record  →  port  →  verify  →  declare
+```
+
+**Never assert what the legacy system does. Run it and record it.** Every claim in
+[`docs/LEGACY-BEHAVIOR.md`](docs/LEGACY-BEHAVIOR.md) is backed by a transcript in
+`parity/golden/`.
+
+Each scenario in [`spec/scenarios.json`](spec/scenarios.json) is either:
+
+- **`strict`** — real business behaviour a port must reproduce exactly;
+- **`quirk`** — a defect a port may reproduce (`--policy bug-for-bug`) or fix
+  (`--policy modernized`).
+
+Which gives you the trick that makes this whole thing work:
 
 ```bash
---------------------------------
-Account Management System
-1. View Balance
-2. Credit Account
-3. Debit Account
-4. Exit
---------------------------------
-Enter your choice (1-4): 
+node parity/cli.mjs verify --target node --policy bug-for-bug
 ```
 
-- User Chooses to View Balance:
+Under `bug-for-bug` the port must reproduce the legacy defects, so **every failure is a
+behaviour you changed on purpose**. That failure list is your remediation manifest —
+the thing a business stakeholder signs off — generated mechanically rather than
+remembered. Anything in it you did not intend is a regression, found without anyone
+reading a diff.
 
-```bash
-Current balance: 1000.00
-```
+Full rationale: [`docs/MIGRATION-PLAYBOOK.md`](docs/MIGRATION-PLAYBOOK.md).
 
-- User Chooses to Credit:
+---
 
-```bash
-Enter credit amount:
-200.00
-Amount credited. New balance: 1200.00
-```
+## The legacy system
 
-- User Chooses to Debit:
+Three COBOL programs, treated as read-only. They are the specification.
 
-```bash
-Enter debit amount:
-300.00
-Amount debited. New balance: 900.00
-```
+- `main.cob` — the menu loop
+- `operations.cob` — credit, debit and view
+- `data.cob` — *intended* to store the balance
 
-- User Chooses to Exit:
+### Documented architecture
 
-```bash
-Exiting the program. Goodbye!
-```
-
-## Explanation
-
-- main.cob: This is the main interface where users select operations.
-- operations.cob: It handles specific operations such as viewing, crediting, and debiting the account balance.
-- data.cob: This program acts as a simple data storage, handling reading and writing of the balance.
-
-This multi-file structure introduces modularity, making it easier to manage and extend the program. Each file has a clear responsibility, and the program flow is driven by user interaction.
-
-### Data flow
-
-```text
-@workspace can you create a sequence diagram of the app showing the data flow of the app. Please create this in mermaid format so that I can render this in a markdown file.
-```
+This is what the original README describes, and what its sequence diagram shows:
 
 ```mermaid
 sequenceDiagram
@@ -143,126 +131,112 @@ sequenceDiagram
     participant Operations
     participant DataProgram
 
-    User->>MainProgram: Start Application
-    MainProgram->>User: Display Menu
-    User->>MainProgram: Select Option (1-4)
-    
-    alt View Balance
-        MainProgram->>Operations: CALL 'Operations' USING 'TOTAL'
-        Operations->>DataProgram: CALL 'DataProgram' USING 'READ', FINAL-BALANCE
-        DataProgram-->>Operations: RETURN FINAL-BALANCE
-        Operations->>User: DISPLAY "Current balance: " FINAL-BALANCE
-    end
-    
-    alt Credit Account
-        MainProgram->>Operations: CALL 'Operations' USING 'CREDIT'
-        Operations->>User: DISPLAY "Enter credit amount: "
-        User->>Operations: Enter Amount
-        Operations->>DataProgram: CALL 'DataProgram' USING 'READ', FINAL-BALANCE
-        DataProgram-->>Operations: RETURN FINAL-BALANCE
-        Operations->>Operations: ADD AMOUNT TO FINAL-BALANCE
-        Operations->>DataProgram: CALL 'DataProgram' USING 'WRITE', FINAL-BALANCE
-        DataProgram-->>Operations: RETURN
-        Operations->>User: DISPLAY "Amount credited. New balance: " FINAL-BALANCE
-    end
-    
-    alt Debit Account
-        MainProgram->>Operations: CALL 'Operations' USING 'DEBIT'
-        Operations->>User: DISPLAY "Enter debit amount: "
-        User->>Operations: Enter Amount
-        Operations->>DataProgram: CALL 'DataProgram' USING 'READ', FINAL-BALANCE
-        DataProgram-->>Operations: RETURN FINAL-BALANCE
-        alt Sufficient Funds
-            Operations->>Operations: SUBTRACT AMOUNT FROM FINAL-BALANCE
-            Operations->>DataProgram: CALL 'DataProgram' USING 'WRITE', FINAL-BALANCE
-            DataProgram-->>Operations: RETURN
-            Operations->>User: DISPLAY "Amount debited. New balance: " FINAL-BALANCE
-        else Insufficient Funds
-            Operations->>User: DISPLAY "Insufficient funds for this debit."
-        end
-    end
-    
-    alt Exit Application
-        MainProgram->>MainProgram: MOVE 'NO' TO CONTINUE-FLAG
-        MainProgram->>User: DISPLAY "Exiting the program. Goodbye!"
-    end
+    User->>MainProgram: Select "Credit Account"
+    MainProgram->>Operations: CALL 'Operations' USING 'CREDIT'
+    Operations->>User: Enter credit amount
+    User->>Operations: 200.00
+    Operations->>DataProgram: CALL 'DataProgram' USING 'READ'
+    DataProgram-->>Operations: FINAL-BALANCE
+    Operations->>Operations: ADD AMOUNT TO FINAL-BALANCE
+    Operations->>DataProgram: CALL 'DataProgram' USING 'WRITE'
+    DataProgram-->>Operations: stored
+    Operations->>User: Amount credited. New balance
 ```
 
-## Generate a test plan
+### Actual architecture
 
-```text
-@workspace The current Cobol app has no tests. Can you please create a test plan of current business logic that I can use to validate with business stakeholders about the current implementation.
-Later I would like to use this test plan to create unit and integration tests in a node.js app. I am in the middle of transforming the current Cobol app to a node.js app.
-The test plan should include the following:
+This is what the program does, verified by instrumenting `data.cob` and by changing its
+opening balance to `7777.77` and observing that the displayed balance did not move
+([`L-10`](docs/LEGACY-BEHAVIOR.md#l-10)):
 
-1. Test Case ID
-2. Test Case Description
-3. Pre-conditions
-4. Test Steps
-5. Expected Result
-6. Actual Result
-7. Status (Pass/Fail)
-8. Comments
+```mermaid
+sequenceDiagram
+    participant User
+    participant MainProgram
+    participant Operations
+    participant DataProgram
 
-Please create the test plan in a markdown table format. The test plan should cover all the business logic in the current Cobol app.
+    User->>MainProgram: Select "Credit Account"
+    MainProgram->>Operations: CALL 'Operations' USING 'CREDIT'
+    Operations->>User: Enter credit amount
+    User->>Operations: 200.00
+    Operations->>DataProgram: CALL 'DataProgram' USING 'READ'
+    Note over DataProgram: receives "READ\0C", matches no branch,<br/>has no ELSE, returns having done nothing
+    DataProgram-->>Operations: (unchanged)
+    Operations->>Operations: ADD AMOUNT TO its own WORKING-STORAGE
+    Operations->>DataProgram: CALL 'DataProgram' USING 'WRITE'
+    Note over DataProgram: receives "WRITE\0", also no match
+    DataProgram-->>Operations: (nothing stored)
+    Operations->>User: Amount credited. New balance
 ```
 
-### Note
+`operations.cob` passes the 4-character literal `'READ'` into a `PIC X(6)` linkage
+item. The callee reads six bytes from a five-byte allocation, gets `READ` plus a NUL
+and a stray byte, matches neither branch, and — because `data.cob` has no `ELSE` —
+fails silently. `main.cob` avoids the same bug only because its literals happen to be
+padded to exactly six characters: `'TOTAL '`, `'CREDIT'`, `'DEBIT '`.
 
-*You may still need follow up with another prompt to generate the markdown file format for the test plan.*
+The balance really lives in `operations.cob`'s own `WORKING-STORAGE`, which is why it
+cannot survive a restart ([`L-09`](docs/LEGACY-BEHAVIOR.md#l-09)).
 
-```markdown
-Convert this to markdown syntax please to insert as a new file
+**This is the single best argument in the repository for characterisation testing.**
+No amount of reading — by a human or a model — finds it. Ten seconds of running does.
+
+---
+
+## Copilot configuration
+
+| Capability | Location |
+| --- | --- |
+| Repository instructions | [`.github/copilot-instructions.md`](.github/copilot-instructions.md) |
+| Agent instructions | [`AGENTS.md`](AGENTS.md) |
+| Path-specific instructions | [`.github/instructions/`](.github/instructions) |
+| Prompt files | [`.github/prompts/`](.github/prompts) |
+| Custom agents | [`.github/agents/`](.github/agents) |
+| Agent skill | [`.github/skills/cobol-parity-check/`](.github/skills/cobol-parity-check) |
+| Cloud agent environment | [`.github/workflows/copilot-setup-steps.yml`](.github/workflows/copilot-setup-steps.yml) |
+
+Three custom agents form the workflow, each with a deliberately different tool
+boundary — restricting tools is what stops an investigator quietly rewriting the
+evidence:
+
+- **`legacy-archaeologist`** — read-only. Establishes ground truth by recording.
+- **`migration-engineer`** — writes the port under the parity gate.
+- **`parity-auditor`** — read-only. Verifies the claims independently.
+
+Handoffs between them are wired into the agent frontmatter.
+
+---
+
+## Repository layout
+
+```
+main.cob  operations.cob  data.cob   the legacy system — read-only, it is the spec
+spec/scenarios.json                  executable behavioural contract
+parity/                              golden-master harness
+parity/golden/                       recorded COBOL transcripts — never hand-edited
+node-accounting-app/                 the modern port
+tests/                               unit tests + parity suites
+docs/LEGACY-BEHAVIOR.md              findings register, L-01 … L-10
+docs/MIGRATION-PLAYBOOK.md           how and why to drive this with Copilot
+docs/WHATS-NEW.md                    what changed from upstream
+TESTPLAN.md                          the stakeholder-facing test plan
 ```
 
-## Convert files using prompt engineering best practices
+---
 
-### Create the Node.js project directory
+## A note on trust
 
-```bash
-mkdir node-accounting-app
-cd node-accounting-app
-```
+GitHub Copilot is an AI pair programmer. It may produce completions that are not
+perfect, safe, or suitable for production. Always review suggestions.
 
-### Use GitHub Copilot to convert the files iteratively
+This repository's position is that "always review" is necessary but not sufficient for
+legacy modernisation, because the failures shown above are invisible to review. What
+review needs is an **oracle** — a command that returns a truthful pass or fail. That is
+what `npm run parity:node` is for.
 
-#### Convert main.cob to main.js
+---
 
-#### Convert operations.cob to operations.js
+## Licence
 
-#### Convert data.cob to data.js
-
-```text
-Let's link all node.js files to work together in one accounting application, and then initialize, install dependencies, and run the application.
-```
-
-### Initialize a new Node.js project
-
-```bash
-npm init -y
-```
-
-### Install the Node.js app
-
-```bash
-npm install
-
-```
-
-### Run the Node.js app
-
-```bash
-node main.js
-```
-
-### Generate unit and integration tests
-
-```text
-@workspace I would like to create unit and integration tests cases form the test plan mentioned in
-#file:TESTPLAN.md file The node.js code is in node-accounting-app folder and I am looking to generate tests
-for #file:operations.js file. Use a popular testing framework and also provide all the dependencies required to run the tests.
-```
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE). Original work © the upstream authors.
