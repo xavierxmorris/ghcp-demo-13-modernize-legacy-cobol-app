@@ -1,3 +1,13 @@
-👋 Welcome to modernizing your legacy app Experience! We are thrilled that you are here and we hope you are excited to explore the capabilities of Copilot!
-📝 If you would like to sign up for Copilot visit here: https://github.com/features/copilot#pricing
-📃 GitHub Copilot documentation: https://docs.github.com/en/copilot
+COBOL to Node.js modernisation lab
+
+The legacy system has been compiled and the test suite has run.
+
+  npm run parity:list      what behaviour is specified
+  npm run parity:cobol     prove the COBOL matches its recorded golden master
+  npm run parity:node      prove the Node.js port matches the specification
+  npm test                 everything
+
+Start here:  docs/LEGACY-BEHAVIOR.md     what the legacy system really does
+             docs/MIGRATION-PLAYBOOK.md  how to drive this with GitHub Copilot
+
+Rule of the house: never assert what the COBOL does. Record it.

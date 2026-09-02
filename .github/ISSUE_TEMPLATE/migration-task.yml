@@ -1,0 +1,73 @@
+name: Migration task
+description: Delegate a migration step to GitHub Copilot cloud agent, or track it manually.
+title: "[migration] "
+labels: ["migration"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Assign this issue to Copilot to have it worked autonomously. The agent
+        environment is configured by `.github/workflows/copilot-setup-steps.yml`,
+        so GnuCOBOL is available and the legacy system can actually be executed.
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of work
+      options:
+        - Characterise a legacy behaviour (record it, write a finding)
+        - Port a COBOL program to Node.js
+        - Triage a failing parity scenario
+        - Audit an existing migration
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What should be true when this is done? Be specific about behaviour, not files.
+      placeholder: |
+        Characterise what happens when a debit is attempted against an account
+        that was left at zero by a previous session.
+    validations:
+      required: true
+
+  - type: input
+    id: scenarios
+    attributes:
+      label: Related scenario ids
+      description: Existing ids from `spec/scenarios.json`, if any.
+      placeholder: "Q-05, TC-3.4"
+
+  - type: input
+    id: findings
+    attributes:
+      label: Related findings
+      description: Ids from `docs/LEGACY-BEHAVIOR.md`, if any.
+      placeholder: "L-01, L-09"
+
+  - type: checkboxes
+    id: rules
+    attributes:
+      label: Ground rules for this repository
+      description: These are enforced by CI as well as by convention.
+      options:
+        - label: The `.cob` files are the specification and must not be modified.
+          required: true
+        - label: "`expectLegacy` and `parity/golden/` are recorded output. Regenerate with `npm run parity:record`; never hand-edit."
+          required: true
+        - label: A failing parity scenario is diagnosed, not silenced by weakening the spec.
+          required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance
+      value: |
+        - [ ] `npm test` passes, with output quoted in the summary
+        - [ ] Any behaviour change is declared explicitly, with its finding id
+        - [ ] `docs/LEGACY-BEHAVIOR.md` updated if a new finding was recorded
+    validations:
+      required: false

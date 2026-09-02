@@ -1,0 +1,39 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build the legacy COBOL",
+      "type": "shell",
+      "command": "npm run build:cobol",
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "Parity: legacy golden master",
+      "type": "shell",
+      "command": "npm run parity:cobol -- --strict",
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "Parity: Node port",
+      "type": "shell",
+      "command": "npm run parity:node",
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "Parity: remediation manifest (failures are intentional changes)",
+      "type": "shell",
+      "command": "node parity/cli.mjs verify --target node --policy bug-for-bug",
+      "problemMatcher": []
+    },
+    {
+      "label": "Test: everything",
+      "type": "shell",
+      "command": "npm test",
+      "problemMatcher": [],
+      "group": { "kind": "test", "isDefault": true }
+    }
+  ]
+}

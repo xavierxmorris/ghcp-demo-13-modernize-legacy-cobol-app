@@ -1,7 +1,32 @@
 {
+  "files.eol": "\n",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "[cobol]": {
+    "editor.rulers": [7, 11, 72],
+    "editor.insertSpaces": true,
+    "editor.tabSize": 4,
+    "files.trimTrailingWhitespace": false
+  },
   "cSpell.words": [
+    "cobc",
     "codespace",
-    "Codespace",
-    "devcontainer"
-  ]
+    "devcontainer",
+    "gnucobol",
+    "GOBACK",
+    "LINKAGE",
+    "mkdtemp",
+    "modernised",
+    "normaliser",
+    "PERFORM"
+  ],
+  "chat.instructionsFilesLocations": {
+    ".github/instructions": true
+  },
+  "chat.promptFilesLocations": {
+    ".github/prompts": true
+  },
+  "chat.agentFilesLocations": {
+    ".github/agents": true
+  }
 }
