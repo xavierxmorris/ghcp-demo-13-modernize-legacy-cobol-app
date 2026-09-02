@@ -1,11 +1,18 @@
-# cobol compiled files
+# Compiled COBOL artefacts
 *.o
-
-# cobol accountsystem program
+build/
 accountsystem
 
-# node_modules
+# Node
 node_modules/
+npm-debug.log*
 
-# node-accounting-app
-node-accounting-app/*
+# Local parity output
+parity/report.json
+
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+
+# Node port runtime state
+node-accounting-app/.account-store.json

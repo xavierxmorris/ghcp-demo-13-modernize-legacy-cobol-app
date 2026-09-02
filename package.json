@@ -1,0 +1,21 @@
+{
+  "name": "modernize-legacy-cobol-app",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Agent-ready COBOL to Node.js modernisation lab with an executable golden-master parity harness.",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "build:cobol": "bash scripts/build-cobol.sh",
+    "parity:list": "node parity/cli.mjs list",
+    "parity:record": "node parity/cli.mjs record --target cobol",
+    "parity:cobol": "node parity/cli.mjs verify --target cobol",
+    "parity:node": "node parity/cli.mjs verify --target node",
+    "parity:node:modern": "node parity/cli.mjs verify --target node --policy modernized",
+    "test": "node --test",
+    "test:watch": "node --test --watch"
+  },
+  "license": "MIT"
+}

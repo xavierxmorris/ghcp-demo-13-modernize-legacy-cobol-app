@@ -1,0 +1,605 @@
+{
+  "version": 2,
+  "description": "Executable behavioural specification for the legacy COBOL account management system. This file is the single source of truth for migration parity: the same scenarios are replayed against the COBOL binary and against any modern port.",
+  "contract": {
+    "summary": "A scenario feeds a fixed list of stdin lines to a target program and captures stdout. Output is reduced to an ordered list of normalised 'facts'. A port proves equivalence by producing the same fact sequence.",
+    "facts": {
+      "balance:<amount>": "A balance was displayed (option 1).",
+      "credited:<amount>": "A credit completed and reported the resulting balance.",
+      "debited:<amount>": "A debit completed and reported the resulting balance.",
+      "insufficient_funds": "A debit was refused because the balance was too low.",
+      "invalid_choice": "The menu rejected the selection.",
+      "rejected": "The input was refused by validation. Modern ports only - the legacy system has no validation.",
+      "exit": "The program printed its farewell and terminated.",
+      "runaway": "The program produced unbounded output and had to be killed. This is a defect, not a feature.",
+      "session_end": "Boundary between two separate process invocations in a multi-session scenario."
+    },
+    "amountNormalisation": "Amounts are compared as unpadded fixed-point strings with exactly two decimals. COBOL prints '001200.00'; a modern port may print '1200.00' or '$1,200.00'. Both normalise to '1200.00'.",
+    "parityLevels": {
+      "strict": "Core business behaviour. A port MUST reproduce expectLegacy exactly. Deviating here is a regression.",
+      "quirk": "A defect or accident of the COBOL implementation. A port may reproduce expectLegacy (bug-for-bug migration) or implement expectModern (deliberate remediation). Choose one policy and hold it; never drift silently."
+    },
+    "vocabulary": "A port is free to change layout, colour and number formatting, but must keep the message keywords ('balance', 'credited', 'debited', 'Insufficient funds', 'Invalid choice') so a single shared normaliser can read both systems."
+  },
+  "scenarios": [
+    {
+      "id": "TC-1.1",
+      "title": "View the opening balance",
+      "tags": [
+        "balance",
+        "happy-path"
+      ],
+      "parity": "strict",
+      "input": [
+        "1",
+        "4"
+      ],
+      "notes": "The account opens at 1000.00, hard-coded in data.cob.",
+      "expectLegacy": [
+        "balance:1000.00",
+        "exit"
+      ]
+    },
+    {
+      "id": "TC-1.2",
+      "title": "Balance is displayed zero-padded to six integer digits",
+      "tags": [
+        "balance",
+        "presentation",
+        "doc-bug"
+      ],
+      "parity": "quirk",
+      "finding": "L-08",
+      "input": [
+        "1",
+        "4"
+      ],
+      "expectModern": [
+        "balance:1000.00",
+        "exit"
+      ],
+      "notes": "The upstream README claims the program prints 'Current balance: 1000.00'. It actually prints '001000.00' because PIC 9(6)V99 is displayed unedited. Presentation-only, so a port should modernise it.",
+      "expectLegacy": [
+        "balance:1000.00",
+        "exit"
+      ]
+    },
+    {
+      "id": "TC-2.1",
+      "title": "Credit the account with a valid amount",
+      "tags": [
+        "credit",
+        "happy-path"
+      ],
+      "parity": "strict",
+      "input": [
+        "2",
+        "200.00",
+        "1",
+        "4"
+      ],
+      "expectLegacy": [
+        "credited:1200.00",
+        "balance:1200.00",
+        "exit"
+      ]
+    },
+    {
+      "id": "TC-2.2",
+      "title": "Credit the account with zero",
+      "tags": [
+        "credit",
+        "boundary"
+      ],
+      "parity": "quirk",
+      "finding": "L-06",
+      "input": [
+        "2",
+        "0",
+        "1",
+        "4"
+      ],
+      "expectModern": [
+        "rejected",
+        "balance:1000.00",
+        "exit"
+      ],
+      "notes": "The legacy system reports 'Amount credited' for a zero-value transaction. An accounting system should refuse to record a no-op movement.",
+      "expectLegacy": [
+        "credited:1000.00",
+        "balance:1000.00",
+        "exit"
+      ]
+    },
+    {
+      "id": "TC-3.1",
+      "title": "Debit the account with a valid amount",
+      "tags": [
+        "debit",
+        "happy-path"
+      ],
+      "parity": "strict",
+      "input": [
+        "3",
+        "300.00",
+        "1",
+        "4"
+      ],
+      "expectLegacy": [
+        "debited:700.00",
+        "balance:700.00",
+        "exit"
+      ]
+    },
+    {
+      "id": "TC-3.2",
+      "title": "Debit more than the available balance",
+      "tags": [
+        "debit",
+        "guard"
+      ],
+      "parity": "strict",
+      "input": [
+        "3",
+        "2000.00",
+        "1",
+        "4"
+      ],
+      "notes": "The one guard the legacy system gets right.",
+      "expectLegacy": [
+        "insufficient_funds",
+        "balance:1000.00",
+        "exit"
+      ]
+    },
+    {
+      "id": "TC-3.3",
+      "title": "Debit the account with zero",
+      "tags": [
+        "debit",
+        "boundary"
+      ],
+      "parity": "quirk",
+      "finding": "L-06",
+      "input": [
+        "3",
+        "0",
+        "1",
+        "4"
+      ],
+      "expectModern": [
+        "rejected",
+        "balance:1000.00",
+        "exit"
+      ],
+      "expectLegacy": [
+        "debited:1000.00",
+        "balance:1000.00",
+        "exit"
+      ]
+    },
+    {
+      "id": "TC-3.4",
+      "title": "Debit exactly the available balance",
+      "tags": [
+        "debit",
+        "boundary"
+      ],
+      "parity": "strict",
+      "input": [
+        "3",
+        "1000.00",
+        "1",
+        "4"
+      ],
+      "notes": "Boundary the original test plan never covered. The comparison is >=, so draining the account to zero is permitted.",
+      "expectLegacy": [
+        "debited:0.00",
+        "balance:0.00",
+        "exit"
+      ]
+    },
+    {
+      "id": "TC-3.5",
+      "title": "Debit one cent more than the available balance",
+      "tags": [
+        "debit",
+        "boundary"
+      ],
+      "parity": "strict",
+      "input": [
+        "3",
+        "1000.01",
+        "1",
+        "4"
+      ],
+      "notes": "Confirms the guard is inclusive on the correct side.",
+      "expectLegacy": [
+        "insufficient_funds",
+        "balance:1000.00",
+        "exit"
+      ]
+    },
+    {
+      "id": "TC-4.1",
+      "title": "Exit the application",
+      "tags": [
+        "lifecycle"
+      ],
+      "parity": "strict",
+      "input": [
+        "4"
+      ],
+      "expectLegacy": [
+        "exit"
+      ]
+    },
+    {
+      "id": "TC-5.1",
+      "title": "Credit then debit in one session",
+      "tags": [
+        "sequence"
+      ],
+      "parity": "strict",
+      "input": [
+        "2",
+        "500",
+        "3",
+        "200",
+        "1",
+        "4"
+      ],
+      "expectLegacy": [
+        "credited:1500.00",
+        "debited:1300.00",
+        "balance:1300.00",
+        "exit"
+      ]
+    },
+    {
+      "id": "TC-5.2",
+      "title": "Balance is retained across operations within one session",
+      "tags": [
+        "sequence",
+        "state"
+      ],
+      "parity": "strict",
+      "input": [
+        "2",
+        "100",
+        "1",
+        "3",
+        "50",
+        "1",
+        "4"
+      ],
+      "expectLegacy": [
+        "credited:1100.00",
+        "balance:1100.00",
+        "debited:1050.00",
+        "balance:1050.00",
+        "exit"
+      ]
+    },
+    {
+      "id": "Q-01",
+      "title": "A negative credit is silently treated as a positive one",
+      "tags": [
+        "validation",
+        "defect"
+      ],
+      "parity": "quirk",
+      "finding": "L-02",
+      "input": [
+        "2",
+        "-100.00",
+        "1",
+        "4"
+      ],
+      "expectModern": [
+        "rejected",
+        "balance:1000.00",
+        "exit"
+      ],
+      "notes": "AMOUNT is PIC 9(6)V99 - unsigned. The minus sign is discarded, so '-100.00' credits 100.00.",
+      "expectLegacy": [
+        "credited:1100.00",
+        "balance:1100.00",
+        "exit"
+      ]
+    },
+    {
+      "id": "Q-02",
+      "title": "A negative debit is silently treated as a positive one",
+      "tags": [
+        "validation",
+        "defect"
+      ],
+      "parity": "quirk",
+      "finding": "L-02",
+      "input": [
+        "3",
+        "-100.00",
+        "1",
+        "4"
+      ],
+      "expectModern": [
+        "rejected",
+        "balance:1000.00",
+        "exit"
+      ],
+      "notes": "Same unsigned-field defect on the debit path.",
+      "expectLegacy": [
+        "debited:900.00",
+        "balance:900.00",
+        "exit"
+      ]
+    },
+    {
+      "id": "Q-03",
+      "title": "A non-numeric amount is silently treated as zero",
+      "tags": [
+        "validation",
+        "defect"
+      ],
+      "parity": "quirk",
+      "finding": "L-03",
+      "input": [
+        "2",
+        "abc",
+        "1",
+        "4"
+      ],
+      "expectModern": [
+        "rejected",
+        "balance:1000.00",
+        "exit"
+      ],
+      "notes": "No NUMERIC class test, so garbage becomes 0 and the program reports success.",
+      "expectLegacy": [
+        "credited:1000.00",
+        "balance:1000.00",
+        "exit"
+      ]
+    },
+    {
+      "id": "Q-04",
+      "title": "An amount longer than the field is truncated before it is parsed",
+      "tags": [
+        "validation",
+        "defect",
+        "data-loss"
+      ],
+      "parity": "quirk",
+      "finding": "L-04",
+      "input": [
+        "2",
+        "12345678.99",
+        "1",
+        "4"
+      ],
+      "expectModern": [
+        "rejected",
+        "balance:1000.00",
+        "exit"
+      ],
+      "notes": "ACCEPT fills the 8-byte field from the left: '12345678.99' becomes '12345678', which then overflows PIC 9(6)V99 down to 345678.00.",
+      "expectLegacy": [
+        "credited:346678.00",
+        "balance:346678.00",
+        "exit"
+      ]
+    },
+    {
+      "id": "Q-05",
+      "title": "A credit that overflows the balance field silently destroys money",
+      "tags": [
+        "arithmetic",
+        "defect",
+        "data-loss",
+        "critical"
+      ],
+      "parity": "quirk",
+      "finding": "L-01",
+      "input": [
+        "2",
+        "999000.00",
+        "1",
+        "4"
+      ],
+      "expectModern": [
+        "rejected",
+        "balance:1000.00",
+        "exit"
+      ],
+      "notes": "1000.00 + 999000.00 = 1000000.00, which does not fit PIC 9(6)V99. There is no ON SIZE ERROR clause, so the leading digit is discarded and the balance becomes 0.00. The program still reports the credit as successful.",
+      "expectLegacy": [
+        "credited:0.00",
+        "balance:0.00",
+        "exit"
+      ]
+    },
+    {
+      "id": "Q-06",
+      "title": "A third decimal place is truncated rather than rounded",
+      "tags": [
+        "arithmetic",
+        "defect"
+      ],
+      "parity": "quirk",
+      "finding": "L-05",
+      "input": [
+        "2",
+        "10.999",
+        "1",
+        "4"
+      ],
+      "expectModern": [
+        "rejected",
+        "balance:1000.00",
+        "exit"
+      ],
+      "notes": "10.999 becomes 10.99. There is no ROUNDED clause and no input validation, so sub-cent value is silently discarded.",
+      "expectLegacy": [
+        "credited:1010.99",
+        "balance:1010.99",
+        "exit"
+      ]
+    },
+    {
+      "id": "Q-07",
+      "title": "End of input causes an unbounded menu loop",
+      "tags": [
+        "lifecycle",
+        "defect",
+        "availability",
+        "critical"
+      ],
+      "parity": "quirk",
+      "finding": "L-07",
+      "input": [
+        "1"
+      ],
+      "limits": {
+        "maxBytes": 2000,
+        "timeoutMs": 5000
+      },
+      "expectModern": [
+        "balance:1000.00",
+        "exit"
+      ],
+      "notes": "ACCEPT at end-of-file leaves the field unchanged and never signals EOF, so the menu loop spins forever emitting 'Invalid choice'. Redirecting the program from a file that lacks a trailing '4' fills the disk.",
+      "expectLegacy": [
+        "balance:1000.00",
+        "invalid_choice",
+        "runaway"
+      ]
+    },
+    {
+      "id": "Q-08",
+      "title": "A multi-digit menu choice is truncated to its first digit",
+      "tags": [
+        "validation",
+        "defect"
+      ],
+      "parity": "quirk",
+      "finding": "L-04",
+      "input": [
+        "12",
+        "4"
+      ],
+      "expectModern": [
+        "invalid_choice",
+        "exit"
+      ],
+      "notes": "USER-CHOICE is PIC 9 - one byte. Typing '12' silently selects option 1.",
+      "expectLegacy": [
+        "balance:1000.00",
+        "exit"
+      ]
+    },
+    {
+      "id": "Q-09",
+      "title": "An empty menu choice is rejected",
+      "tags": [
+        "validation"
+      ],
+      "parity": "strict",
+      "input": [
+        "",
+        "4"
+      ],
+      "notes": "The one input path where the legacy default-to-zero behaviour produces a sensible result.",
+      "expectLegacy": [
+        "invalid_choice",
+        "exit"
+      ]
+    },
+    {
+      "id": "Q-10",
+      "title": "Scientific notation is not understood and becomes zero",
+      "tags": [
+        "validation",
+        "defect"
+      ],
+      "parity": "quirk",
+      "finding": "L-03",
+      "input": [
+        "2",
+        "1e3",
+        "1",
+        "4"
+      ],
+      "expectModern": [
+        "rejected",
+        "balance:1000.00",
+        "exit"
+      ],
+      "expectLegacy": [
+        "credited:1000.00",
+        "balance:1000.00",
+        "exit"
+      ]
+    },
+    {
+      "id": "Q-11",
+      "title": "The balance does not survive a restart",
+      "tags": [
+        "persistence",
+        "defect",
+        "critical"
+      ],
+      "parity": "quirk",
+      "finding": "L-09",
+      "sessions": [
+        [
+          "2",
+          "500",
+          "1",
+          "4"
+        ],
+        [
+          "1",
+          "4"
+        ]
+      ],
+      "expectModern": [
+        "credited:1500.00",
+        "balance:1500.00",
+        "exit",
+        "session_end",
+        "balance:1500.00",
+        "exit"
+      ],
+      "notes": "The balance lives in operations.cob's own FINAL-BALANCE in WORKING-STORAGE - process memory that survives CALLs but not the process. data.cob never runs at all (finding L-10), so nothing is stored anywhere. Every restart silently reopens the account at 1000.00.",
+      "expectLegacy": [
+        "credited:1500.00",
+        "balance:1500.00",
+        "exit",
+        "session_end",
+        "balance:1000.00",
+        "exit"
+      ]
+    },
+    {
+      "id": "Q-12",
+      "title": "Surrounding whitespace in an amount is tolerated",
+      "tags": [
+        "validation"
+      ],
+      "parity": "strict",
+      "input": [
+        "2",
+        " 200 ",
+        "1",
+        "4"
+      ],
+      "notes": "Documented so a port does not accidentally become stricter than the original on a harmless input.",
+      "expectLegacy": [
+        "credited:1200.00",
+        "balance:1200.00",
+        "exit"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+# Normalise line endings so golden-master files compare byte-for-byte
+# on Windows, macOS and Linux. Without this, CRLF checkouts break parity.
+* text=auto eol=lf
+
+*.cob        text eol=lf
+*.md         text eol=lf
+*.mjs        text eol=lf
+*.js         text eol=lf
+*.json       text eol=lf
+*.yml        text eol=lf
+*.yaml       text eol=lf
+*.sh         text eol=lf
+
+parity/golden/*.txt text eol=lf
+
+*.png        binary
