@@ -12,21 +12,36 @@ They are read-only. Do not reformat, refactor, add comments to, or "fix" them.
 ## What to know before you reason about this code
 
 COBOL's fixed-format layout and `PIC` clauses cause behaviour that is invisible if
-you read the source like a modern language:
+you read the source like a modern language. Each point below is recorded, not
+inferred:
 
 - **`PIC 9(6)V99` is an unsigned 8-digit fixed-point field.** A minus sign in the
-  input is discarded, not rejected. `-100` credits 100.
+  input is discarded, not rejected. `-100` credits 100. (`L-02`)
 - **`ACCEPT` fills the receiving field from the left and truncates.** Input longer
   than the field is silently cut before it is parsed, so `12345678.99` becomes
-  `12345678`.
+  `12345678`. (`L-04`)
 - **`ADD` / `SUBTRACT` without `ON SIZE ERROR` discard the overflowing digit.**
-  The result wraps and the program reports success.
+  The result wraps and the program reports success. (`L-01`)
 - **`ACCEPT` at end of file leaves the field unchanged and never signals EOF.**
-  A `PERFORM UNTIL` loop around it spins forever.
+  A `PERFORM UNTIL` loop around it spins forever. (`L-07`)
 - **`WORKING-STORAGE` in a called subprogram persists for the process lifetime**
-  but not beyond it. `data.cob` looks like storage and is really a global variable.
-- **Alphanumeric comparison pads the shorter operand with spaces**, which is why
-  `'READ'` matches a `PIC X(6)` field holding `'READ  '`.
+  but not beyond it. (`L-09`)
+- **A literal passed `BY REFERENCE` is only as wide as the literal.**
+  `operations.cob` passes the 4-character `'READ'` and 5-character `'WRITE'` into
+  `data.cob`'s `PIC X(6)` linkage item. In the GnuCOBOL 3.1.2 and 4.0 builds
+  recorded here the callee receives `READ\0C` and `WRITE\0`, matches neither
+  branch, and — because `data.cob` has no `ELSE` — silently does nothing.
+  **`data.cob` therefore never executes, and the balance is actually held by
+  `operations.cob`'s own `FINAL-BALANCE`.** (`L-10`)
+- **`main.cob` avoids that bug only by accident**: its literals `'TOTAL '`,
+  `'CREDIT'` and `'DEBIT '` happen to be exactly six characters, so the
+  `Operations` dispatch works.
+
+Reproduce the last two:
+
+```bash
+bash scripts/probes/data-cob-is-dead-code.sh
+```
 
 ## The rule
 

@@ -57,9 +57,46 @@ describe('extractFacts', () => {
   });
 });
 
+describe('extractFacts rejects output that should not pass', () => {
+  it('does not read a malformed grouped amount', () => {
+    assert.deepEqual(extractFacts('Current balance: 1,0.00'), ['unparsed:Current balance: 1,0.00']);
+  });
+
+  it('does not match a two-decimal prefix of a three-decimal number', () => {
+    assert.deepEqual(extractFacts('Current balance: 1000.000'), ['unparsed:Current balance: 1000.000']);
+  });
+
+  it('does not treat a negated credit as a successful one', () => {
+    const line = 'Amount not credited. New balance: 1200.00';
+    assert.deepEqual(extractFacts(line), [`unparsed:${line}`]);
+  });
+
+  it('surfaces unexpected wording instead of silently dropping it', () => {
+    assert.deepEqual(extractFacts('ERROR: persistence failed, balance: unknown'), [
+      'unparsed:ERROR: persistence failed, balance: unknown',
+    ]);
+  });
+
+  it('does not mistake the menu for an outcome', () => {
+    const menu = ['1. View Balance', '2. Credit Account', '3. Debit Account', 'Enter credit amount: '].join('\n');
+    assert.deepEqual(extractFacts(menu), []);
+  });
+});
+
 describe('markRunaway', () => {
   it('collapses a repeating tail into a deterministic, diffable sequence', () => {
     const spinning = ['balance:1000.00', ...Array(500).fill('invalid_choice')];
     assert.deepEqual(markRunaway(spinning), ['balance:1000.00', 'invalid_choice', 'runaway']);
+  });
+
+  it('preserves legitimate repeated events before the runaway tail', () => {
+    const facts = ['credited:1100.00', 'credited:1200.00', 'credited:1200.00', 'invalid_choice', 'invalid_choice'];
+    assert.deepEqual(markRunaway(facts), [
+      'credited:1100.00',
+      'credited:1200.00',
+      'credited:1200.00',
+      'invalid_choice',
+      'runaway',
+    ]);
   });
 });

@@ -28,7 +28,7 @@ validated amount — that absence is the root of findings `L-02` through `L-06`.
 
 ## What this port changes on purpose
 
-Thirteen legacy defects are remediated. Each is a **behaviour change** that a business
+Fourteen legacy defects are remediated. Each is a **behaviour change** that a business
 stakeholder would need to sign off, not a refactor:
 
 | Finding | Legacy behaviour | This port |
@@ -36,8 +36,8 @@ stakeholder would need to sign off, not a refactor:
 | `L-01` | An overflowing credit wraps to `0.00` and reports success | Refuses the transaction, balance untouched |
 | `L-02` | `-100.00` credits `100.00` | Refuses a signed amount |
 | `L-03` | `abc` and `1e3` become `0.00` and report success | Refuses non-numeric input |
-| `L-04` | Input longer than the field is truncated before parsing | Refuses over-long amounts |
-| `L-05` | `10.999` silently becomes `10.99` | Refuses more than two decimal places |
+| `L-04` | Input longer than the field is truncated before parsing, including `999999.99` | Refuses over-long amounts |
+| `L-05` | `10.999` silently becomes `10.99`; `0.005` becomes nothing | Refuses more than two decimal places |
 | `L-06` | A zero-value transaction is recorded as successful | Refuses a zero amount |
 | `L-07` | End of input spins forever printing `Invalid choice` | Exits cleanly |
 | `L-08` | Balance displayed as `001000.00` | Displayed as `1,000.00` |
@@ -64,6 +64,22 @@ regression.
 - **The `999,999.99` ceiling is kept** as an explicit rule. It came from
   `PIC 9(6)V99`; the legacy system enforced it by silently destroying the overflow.
 - **Zero dependencies.** The standard library is sufficient.
+
+## Scope: single process
+
+The store is written atomically — a unique temporary file plus `rename` — so a crash
+cannot leave a torn file. That is **not** the same as transactional.
+
+`readBalance()` → arithmetic → `writeBalance()` is a read-modify-write with no lock,
+so two instances running against the same `ACCOUNT_STORE` can overwrite each other.
+This port is deliberately single-process, matching the original, which had no
+concurrency story at all. A production ledger needs transactional storage; that is a
+separate exercise, not a `fs` trick.
+
+A store that exists but is not exactly what this program wrote — malformed JSON, a
+missing or non-integer `balanceCents`, a negative value, or one beyond the account
+limit — raises an error rather than falling back to the opening balance. Silently
+resetting an account to `1,000.00` is finding `L-09`, not a recovery strategy.
 
 ## Output vocabulary
 

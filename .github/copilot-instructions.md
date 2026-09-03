@@ -11,7 +11,7 @@ regressing behaviour**. It is deliberately small so the interesting part is the
 - `spec/scenarios.json` — the executable behavioural contract. Single source of truth.
 - `parity/` — the golden-master harness that replays scenarios against any target.
 - `node-accounting-app/` — the modern port.
-- `docs/LEGACY-BEHAVIOR.md` — findings register (`L-01` … `L-09`), each empirically verified.
+- `docs/LEGACY-BEHAVIOR.md` — findings register (`L-01` … `L-10`), each empirically verified.
 
 ## The rule that matters most
 

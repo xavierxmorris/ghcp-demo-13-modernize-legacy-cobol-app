@@ -62,6 +62,8 @@ Every row below was discovered by running the program. Four are 🔴 critical.
 | `Q-10` | Credit `1e3` | quirk | `credited:1000.00` | 🟠 `L-03` — treated as zero |
 | `Q-11` | Restart the program | quirk | balance returns to `1000.00` | 🔴 `L-09` — **nothing is persisted** |
 | `Q-12` | Credit `" 200 "` with spaces | strict | `credited:1200.00` | Tolerated; a port must not become stricter |
+| `Q-13` | Credit `0.005` | quirk | `credited:1000.00` | 🟡 `L-05` — sub-cent discarded, success reported |
+| `Q-14` | Credit `999999.99`, the field maximum | quirk | `credited:999.90` | 🟠 `L-04` — even the stated maximum is truncated |
 
 ---
 
@@ -101,4 +103,4 @@ incorrect.
 | Harness self-tests | `tests/facts.test.mjs` |
 | Equivalence tests for both systems | `tests/parity.test.mjs` |
 
-`npm test` runs all of it — 83 assertions.
+`npm test` runs all of it — 106 tests. The 26 COBOL parity tests skip automatically when `build/accountsystem` is absent.

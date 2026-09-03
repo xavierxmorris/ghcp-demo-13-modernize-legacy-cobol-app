@@ -22,7 +22,7 @@ at least three ways that no reviewer would catch by reading it:
 | --- | --- | --- |
 | Credit `999000.00` onto `1000.00` → `1000000.00` | → `0.00`, reported as a **successful credit** | [`L-01`](docs/LEGACY-BEHAVIOR.md#l-01) |
 | Credit `-100.00` → balance falls to `900.00` | → balance **rises** to `1100.00` | [`L-02`](docs/LEGACY-BEHAVIOR.md#l-02) |
-| A working three-tier data layer, per the docs | `data.cob` is **dead code** and never executes | [`L-10`](docs/LEGACY-BEHAVIOR.md#l-10) |
+| A working three-tier data layer, per the docs | `data.cob` runs but **never matches an operation**, so it stores nothing | [`L-10`](docs/LEGACY-BEHAVIOR.md#l-10) |
 
 Better models do not fix this. They make it worse, because a more capable model writes
 a more convincing wrong answer. The problem is not reasoning quality — it is that the
@@ -33,7 +33,7 @@ then migrates it.
 
 ```bash
 npm run parity:node
-# 24/24 scenarios matched, 13 legacy defect(s) deliberately remediated.
+# 26/26 scenarios matched, 14 legacy defect(s) deliberately remediated.
 # Parity holds.
 ```
 
@@ -46,7 +46,7 @@ or the devcontainer — GnuCOBOL, Node and the Copilot extensions are configured
 
 ```bash
 npm run build:cobol    # compile the legacy system
-npm test               # 83 assertions: unit tests + both parity suites
+npm test               # 106 tests (26 skip without a COBOL compiler)
 ```
 
 Locally you need Node 20.11+ and GnuCOBOL:
@@ -59,7 +59,7 @@ brew install gnucobol                                      # macOS
 > The Ubuntu package is `gnucobol3` or `gnucobol4`. Plain `gnucobol` is a transitional
 > package pulling the 4.0 pre-release, and on Ubuntu 20.04 it installs GnuCOBOL 2.2.
 > CI and the devcontainer pin 3.1.2. GnuCOBOL 3.1.2 and 4.0-early-dev were verified to
-> produce byte-identical output across all 24 scenarios.
+> produce byte-identical output across all 26 scenarios.
 
 There is no `npm install`. The project has zero dependencies.
 
@@ -196,15 +196,19 @@ No amount of reading — by a human or a model — finds it. Ten seconds of runn
 | Agent skill | [`.github/skills/cobol-parity-check/`](.github/skills/cobol-parity-check) |
 | Cloud agent environment | [`.github/workflows/copilot-setup-steps.yml`](.github/workflows/copilot-setup-steps.yml) |
 
-Three custom agents form the workflow, each with a deliberately different tool
-boundary — restricting tools is what stops an investigator quietly rewriting the
-evidence:
+Three custom agents form the workflow, each with a different scope and tool set:
 
-- **`legacy-archaeologist`** — read-only. Establishes ground truth by recording.
+- **`legacy-archaeologist`** — establishes ground truth by recording. Writes evidence
+  and findings, never application code.
 - **`migration-engineer`** — writes the port under the parity gate.
 - **`parity-auditor`** — read-only. Verifies the claims independently.
 
 Handoffs between them are wired into the agent frontmatter.
+
+The boundaries are conventions plus CI, not sandboxes. The archaeologist has an
+editing tool because recording evidence requires one; what stops it rewriting the
+evidence is the `guard-recorded-artefacts` job, which re-records from the binary and
+fails on any difference.
 
 ---
 
@@ -217,13 +221,42 @@ parity/                              golden-master harness
 parity/golden/                       recorded COBOL transcripts — never hand-edited
 node-accounting-app/                 the modern port
 tests/                               unit tests + parity suites
+scripts/probes/                      re-runnable evidence for findings that need instrumentation
 docs/LEGACY-BEHAVIOR.md              findings register, L-01 … L-10
 docs/MIGRATION-PLAYBOOK.md           how and why to drive this with Copilot
 docs/WHATS-NEW.md                    what changed from upstream
 TESTPLAN.md                          the stakeholder-facing test plan
+RUN-SHEET.md  PROMPTS.md             demo walkthrough and the prompts behind it
+go.ps1                               one-command runner (uses Docker when GnuCOBOL is absent)
 ```
 
 ---
+
+## Honesty notes
+
+Things this repository claims, and exactly how far the evidence goes:
+
+- **"Verified" means recorded.** Every finding is backed either by a scenario replayed
+  in CI, or by a re-runnable script in [`scripts/probes/`](scripts/probes). Both are
+  labelled in [`docs/LEGACY-BEHAVIOR.md`](docs/LEGACY-BEHAVIOR.md).
+- **The compiler claim is narrow.** GnuCOBOL 3.1.2 and 4.0-early-dev on Ubuntu 24.04
+  x86-64 produce byte-identical output across all 26 scenarios. Other compilers,
+  dialect flags (`-std=`) and locales are untested. The `L-10` byte-level explanation
+  in particular depends on how a compiler lays out literals passed by reference; the
+  observable outcome is what matters for the migration.
+- **The CI guard is a reproducibility check, not provenance enforcement.** It proves
+  the committed evidence matches what the committed COBOL produces, and it rejects any
+  `.cob` change outright. Branch protection and `CODEOWNERS` are the real control over
+  who may change the specification.
+- **Agent boundaries are conventions plus CI, not sandboxes.** The archaeologist agent
+  holds an editing tool because recording evidence needs one.
+- **The port is single-process.** Writes are atomic; the read-modify-write is not
+  transactional. See [`node-accounting-app/README.md`](node-accounting-app/README.md).
+- **Coverage is incomplete, on purpose.** Concurrency, TTY interaction, dialect flags
+  and locale are listed as gaps at the end of `docs/LEGACY-BEHAVIOR.md` rather than
+  quietly omitted.
+- **The COBOL is unmodified.** Every defect described here is still present, because
+  the defects are the exercise.
 
 ## A note on trust
 

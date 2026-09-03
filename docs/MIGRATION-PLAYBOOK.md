@@ -16,7 +16,7 @@ It also fails on this 90-line program, in ways that are invisible without execut
 - A port that parses `-100.00` with `Number()` **debits** through the credit path,
   where the original **credits** (`L-02`). Opposite results, same input.
 - A port would build the three-tier data layer the README describes — which the
-  original never actually had, because `data.cob` is dead code (`L-10`).
+  original never actually had, because `data.cob` never matches an operation (`L-10`).
 
 None of these are model failures. The model was asked to translate source it was never
 given the means to observe. Better models make this *worse*, not better: a more capable
@@ -111,15 +111,27 @@ regression, and you found it without anyone reading a diff.
 ## Guardrails that survive contact with an agent
 
 Instructions are advisory; an agent under pressure to make tests pass may still edit
-the spec. So the important rules are enforced mechanically:
+the spec. So the important rules are checked mechanically:
 
 - `spec/scenarios.json`'s `expectLegacy` and everything in `parity/golden/` are
   **recorded output**. The `guard-recorded-artefacts` CI job re-runs
-  `npm run parity:record` and fails if the result differs from what was committed. You
-  cannot make a red scenario green by rewriting the evidence.
+  `npm run parity:record` against a freshly compiled binary and fails if the result
+  differs from what was committed, if a golden file is missing, or if an orphan golden
+  file appears. Editing a golden file to turn a red scenario green is caught.
+
+  Be clear about what this is: a **reproducibility check**, not provenance
+  enforcement. It proves the committed evidence matches what the committed COBOL
+  produces. A pull request that changes the `.cob` files *and* the baselines together
+  is self-consistent and would pass — which is why the job also fails outright on any
+  change to a `.cob` file, and why branch protection and `CODEOWNERS` are the real
+  control for that case.
 - Every spawned process has a byte cap and a timeout, because the legacy binary loops
   forever on end of input (`L-07`). Without both, an agent running the suite hangs or
   fills the disk.
+- Every session's exit status is checked. A target that prints a perfect transcript
+  and then exits nonzero fails, rather than passing on the strength of its output.
+- Output that uses the contract vocabulary but cannot be parsed becomes an `unparsed:`
+  fact, so wording drift shows up as a diff instead of a silent omission.
 - Each scenario runs with a private data store, so results cannot depend on order.
 
 ## Running the exercise yourself

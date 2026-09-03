@@ -1,20 +1,30 @@
 # What the legacy system actually does
 
-Every claim in this document was produced by **running the compiled COBOL program**
-and recording its output. Nothing here is inferred from reading the source. The
-evidence lives in [`parity/golden/`](../parity/golden) and in the `expectLegacy`
-fields of [`spec/scenarios.json`](../spec/scenarios.json).
+Every claim in this document was produced by **running the compiled COBOL program**.
+Nothing here is inferred from reading the source.
 
-Reproduce any of it:
+Two kinds of evidence appear below, and they are labelled:
+
+- **Recorded scenarios.** Most findings are backed by a scenario in
+  [`spec/scenarios.json`](../spec/scenarios.json) and a transcript in
+  [`parity/golden/`](../parity/golden), replayed by CI on every pull request.
+- **Committed probes.** `L-10` and a few supporting observations needed
+  instrumentation or a modified copy of the source, so they cannot be scenarios.
+  They ship as re-runnable scripts under
+  [`scripts/probes/`](../scripts/probes) instead, and are marked where they appear.
+
+Reproduce either:
 
 ```bash
 npm run build:cobol
-npm run parity:record -- --filter Q-05     # or any scenario id
+npm run parity:record -- --filter Q-05            # a recorded scenario
+bash scripts/probes/data-cob-is-dead-code.sh      # a committed probe
 ```
 
-Recorded with GnuCOBOL 3.1.2 on Ubuntu 24.04. GnuCOBOL 4.0-early-dev was checked
-against the same 24 scenarios and produced **byte-identical** output, so these
-findings are properties of the program, not of one compiler.
+Recorded with GnuCOBOL 3.1.2 on Ubuntu 24.04 x86-64. GnuCOBOL 4.0-early-dev was
+checked against the same 26 scenarios and produced **byte-identical** output, so
+these findings are properties of the program rather than of one compiler. Behaviour
+under other compilers, dialect flags (`-std=`) or locales is untested.
 
 ---
 
@@ -25,11 +35,11 @@ findings are properties of the program, not of one compiler.
 | [L-01](#l-01) | 🔴 Critical | An overflowing credit silently destroys money and reports success | `Q-05` |
 | [L-07](#l-07) | 🔴 Critical | End of input causes an unbounded loop | `Q-07` |
 | [L-09](#l-09) | 🔴 Critical | The balance does not survive a restart | `Q-11` |
-| [L-10](#l-10) | 🔴 Critical | `data.cob` is dead code — the documented architecture is fiction | probe, below |
+| [L-10](#l-10) | 🔴 Critical | `data.cob` never executes either branch — the documented architecture is fiction | probe |
 | [L-02](#l-02) | 🟠 High | The minus sign on an amount is silently discarded | `Q-01`, `Q-02` |
 | [L-03](#l-03) | 🟠 High | Non-numeric input silently becomes zero and reports success | `Q-03`, `Q-10` |
-| [L-04](#l-04) | 🟠 High | Input longer than the field is silently truncated before parsing | `Q-04`, `Q-08` |
-| [L-05](#l-05) | 🟡 Medium | Sub-cent value is truncated, not rounded | `Q-06` |
+| [L-04](#l-04) | 🟠 High | Input longer than the field is silently truncated before parsing | `Q-04`, `Q-08`, `Q-14` |
+| [L-05](#l-05) | 🟡 Medium | Sub-cent value is truncated, not rounded | `Q-06`, `Q-13` |
 | [L-06](#l-06) | 🟡 Medium | Zero-value transactions are accepted and reported as successful | `TC-2.2`, `TC-3.3` |
 | [L-08](#l-08) | ⚪ Low | The balance is rendered zero-padded; the README documents it wrongly | `TC-1.2` |
 
@@ -128,8 +138,10 @@ Recorded facts (`Q-04`): `credited:346678.00 | balance:346678.00 | exit`
 
 `USER-CHOICE` is `PIC 9` — one byte — so `12` becomes `1`.
 
-Two independent confirmations of the same mechanism: `999999.99` (9 characters)
-truncates to `999999.9`, producing `999999.90`, not `999999.99`.
+Confirmed independently at the boundary where it is least expected. `999999.99` is
+the *largest value the field can hold*, yet it is nine characters entering an
+eight-byte field, so it truncates to `999999.9` = `999999.90` before the addition —
+which then overflows to `000999.90` (`Q-14`).
 
 **Impact if ported blindly.** A modern port reads the whole line and gets a completely
 different number. Whether that is a fix or a regression is a business decision that
@@ -143,7 +155,9 @@ someone must make explicitly — see `Q-04`'s `expectModern`.
 
 **Severity:** 🟡 Medium — small, systematic, one-directional loss.
 
-**Observed.** Credit `10.999` → balance `1010.99`. Credit `0.005` → balance unchanged.
+**Observed.** Credit `10.999` → balance `1010.99` (`Q-06`).
+Credit `0.005` → balance unchanged at `1000.00`, yet the program reports
+`Amount credited` (`Q-13`).
 
 **Why.** `PIC 9(6)V99` has two decimal places and there is no `ROUNDED` clause, so the
 third decimal is discarded. Truncation always favours the institution, which is
@@ -242,13 +256,27 @@ written to a file or a database. Every restart silently reopens the account at
 
 ## L-10
 
-### `data.cob` is dead code, and the documented architecture is fiction
+### `data.cob` never executes either of its branches, and the documented architecture is fiction
 
 **Severity:** 🔴 Critical — the system does not have the design it claims to have.
 
+**Scope of this finding.** Recorded under GnuCOBOL 3.1.2 and 4.0-early-dev on
+Ubuntu 24.04 x86-64, which produce identical results. The byte-level explanation
+below depends on how a compiler lays out literals passed by reference, so treat the
+mechanism as specific to these builds; the *observable outcome* is what the
+migration must account for.
+
+Reproduce everything in this section:
+
+```bash
+bash scripts/probes/data-cob-is-dead-code.sh
+```
+
 The upstream README describes a three-tier structure and ships a sequence diagram
-showing `DataProgram` returning the balance to `Operations`. **None of that happens.**
-`DataProgram` is called four times per session and does nothing on every call.
+showing `DataProgram` returning the balance to `Operations`. **That exchange never
+happens.** `DataProgram` is entered — the probe's first `DISPLAY` proves it runs —
+but neither its `READ` nor its `WRITE` branch is ever taken, and it has no `ELSE`,
+so every call returns having changed nothing.
 
 **Evidence 1 — what `DataProgram` actually receives.** Instrumenting a copy of
 `data.cob` to display its `PIC X(6)` linkage item, with `operations.cob` unmodified:
@@ -261,8 +289,7 @@ showing `DataProgram` returning the balance to `Operations`. **None of that happ
 Amount credited. New balance: 001200.00
 ```
 
-`^@` is a NUL byte. Neither `IF OPERATION-TYPE = 'READ'` nor `= 'WRITE'` is true, and
-`data.cob` has no `ELSE`, so both calls fall through in silence.
+`^@` is a NUL byte. Neither `IF OPERATION-TYPE = 'READ'` nor `= 'WRITE'` is true.
 
 **Evidence 2 — changing `data.cob` has no effect.** Setting
 `STORAGE-BALANCE VALUE 7777.77` in `data.cob` and changing nothing else:
@@ -276,7 +303,7 @@ The balance actually lives in `operations.cob`'s own
 `01 FINAL-BALANCE PIC 9(6)V99 VALUE 1000.00`, which persists across `CALL`s because
 `WORKING-STORAGE` in a called subprogram survives for the life of the process.
 
-**Why.** `operations.cob` passes literals that are shorter than the receiving field:
+**Why.** `operations.cob` passes literals that are narrower than the receiving field:
 
 ```cobol
 CALL 'DataProgram' USING 'READ', FINAL-BALANCE      *> 4 characters
@@ -284,13 +311,15 @@ CALL 'DataProgram' USING 'WRITE', FINAL-BALANCE     *> 5 characters
 ```
 
 `data.cob` declares `01 PASSED-OPERATION PIC X(6)`. GnuCOBOL passes the literal by
-reference as a C string, so the callee reads six bytes from a five- or six-byte
-allocation and picks up the NUL terminator plus a byte of whatever follows it in
-read-only data — here the `C` of `"CREDIT"`.
+reference as a C string, so in these builds the callee reads six bytes from a five-
+or six-byte allocation and picks up the NUL terminator — plus, for `'READ'`, one
+further byte of whatever follows in read-only data, observed here as the `C` of
+`"CREDIT"`. Reading past `'READ'`'s allocation is undefined behaviour; the `WRITE`
+case does not require it, and still fails to match because of the NUL.
 
-Compare `main.cob`, which gets it right by padding every literal to exactly six
-characters: `'TOTAL '`, `'CREDIT'`, `'DEBIT '`. That is why the `Operations` dispatch
-works and the `DataProgram` dispatch does not.
+Compare `main.cob`, which avoids the bug by accident: every literal it passes is
+already exactly six characters — `'TOTAL '`, `'CREDIT'`, `'DEBIT '`. That is why
+the `Operations` dispatch works and the `DataProgram` dispatch does not.
 
 **Impact if ported blindly.** This is the finding that makes the case for
 characterisation testing better than any argument. A faithful reading of the source —

@@ -1,0 +1,22 @@
+# Reproducible toolchain for this lab: GnuCOBOL 3.1.2 + Node 22.
+#
+# Used by go.ps1 on machines without a COBOL compiler (notably Windows).
+# GnuCOBOL is pinned to 3.1.2 to match .github/workflows/ci.yml, so the golden
+# master stays reproducible. `gnucobol` is a transitional package that installs
+# the 4.0 pre-release.
+#
+#   docker build -f scripts/Dockerfile.lab -t cobol-lab:local .
+#   docker run --rm -v "${PWD}:/work" -w /work cobol-lab:local npm test
+FROM ubuntu:24.04
+
+RUN apt-get update -qq \
+ && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+      gnucobol3 ca-certificates curl xz-utils git \
+ && rm -rf /var/lib/apt/lists/*
+
+ARG NODE_VERSION=22.14.0
+RUN curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" -o /tmp/node.tar.xz \
+ && tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 \
+ && rm /tmp/node.tar.xz
+
+WORKDIR /work

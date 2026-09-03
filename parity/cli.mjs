@@ -11,39 +11,40 @@
  * port still does it. Nothing here asks a model to judge equivalence: the
  * comparison is a byte diff and a string-array diff.
  */
-import { mkdirSync, mkdtempSync, rmSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
-import os from 'node:os';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { factsForScenario } from './lib/facts.mjs';
-import { runScenario } from './lib/run.mjs';
+import { describeExit, exitedCleanly, runScenario } from './lib/run.mjs';
 import { resolveTarget, ROOT } from './lib/targets.mjs';
-import { GOLDEN_DIR, expectedFacts, goldenPath, loadSpec, saveSpec, selectScenarios } from './lib/spec.mjs';
+import {
+  GOLDEN_DIR,
+  expectedFacts,
+  goldenPath,
+  loadSpec,
+  saveSpec,
+  selectScenarios,
+  withIsolatedStore,
+} from './lib/spec.mjs';
 
-/**
- * Give each scenario its own private data directory.
- *
- * The COBOL programs keep the balance in WORKING-STORAGE and ignore this, but
- * any port with durable storage would otherwise leak state between scenarios
- * and make results order-dependent.
- */
-function withIsolatedStore(fn) {
-  const dir = mkdtempSync(path.join(os.tmpdir(), 'parity-'));
-  try {
-    return fn({ ACCOUNT_STORE: path.join(dir, 'account.json') });
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-}
+const FLAGS_WITH_VALUES = new Set(['--target', '--policy', '--filter']);
 
 function parseArgs(argv) {
   const [command = 'verify', ...rest] = argv;
   const options = { target: 'cobol', policy: 'modernized', filter: null, strict: false, verbose: false };
   for (let i = 0; i < rest.length; i += 1) {
     const arg = rest[i];
-    if (arg === '--target') options.target = rest[++i];
-    else if (arg === '--policy') options.policy = rest[++i];
-    else if (arg === '--filter') options.filter = rest[++i];
-    else if (arg === '--strict') options.strict = true;
+    if (FLAGS_WITH_VALUES.has(arg)) {
+      const value = rest[i + 1];
+      // Without this, `--filter` at the end of the line silently becomes
+      // undefined and selects every scenario.
+      if (value === undefined || value.startsWith('--')) {
+        throw new Error(`${arg} requires a value.`);
+      }
+      i += 1;
+      if (arg === '--target') options.target = value;
+      else if (arg === '--policy') options.policy = value;
+      else options.filter = value;
+    } else if (arg === '--strict') options.strict = true;
     else if (arg === '--verbose' || arg === '-v') options.verbose = true;
     else throw new Error(`Unrecognised argument: ${arg}`);
   }
@@ -75,6 +76,23 @@ function diffFacts(expected = [], actual = []) {
   return lines.join('\n');
 }
 
+/**
+ * A session must either finish cleanly, or have been killed by the harness -
+ * in which case the `runaway` fact records it and the comparison decides
+ * whether that was expected. A target that prints a correct transcript and
+ * then exits nonzero is not passing.
+ */
+function exitProblems(results) {
+  return results
+    .map((result, index) =>
+      exitedCleanly(result) || result.killedByHarness
+        ? null
+        : `session ${index + 1} ${describeExit(result)}` +
+          (result.stderr.trim() ? `; stderr: ${result.stderr.trim().split('\n')[0]}` : ''),
+    )
+    .filter(Boolean);
+}
+
 async function commandList() {
   const spec = loadSpec();
   const widest = Math.max(...spec.scenarios.map((s) => s.id.length));
@@ -103,6 +121,15 @@ async function commandRecord(options) {
 
   for (const scenario of selectScenarios(spec, options.filter)) {
     const results = await withIsolatedStore((env) => runScenario(target, scenario, env));
+
+    // Never bless a crashing run as the baseline.
+    const problems = exitProblems(results);
+    if (problems.length > 0) {
+      console.error(colour(RED, `${scenario.id}: refusing to record an unhealthy run`));
+      for (const message of problems) console.error(colour(RED, `    ${message}`));
+      return 1;
+    }
+
     results.forEach((result, index) => {
       writeFileSync(goldenPath(scenario.id, index, results.length), result.stdout, 'utf8');
     });
@@ -142,32 +169,32 @@ async function commandVerify(options) {
   for (const scenario of scenarios) {
     const results = await withIsolatedStore((env) => runScenario(target, scenario, env));
     const actual = factsForScenario(results);
-    const expected = expectedFacts(scenario, { targetId: target.id, policy: options.policy });
+    const { facts: expected, remediates } = expectedFacts(scenario, {
+      targetId: target.id,
+      policy: options.policy,
+    });
     const factsMatch = JSON.stringify(actual) === JSON.stringify(expected);
+    const problems = exitProblems(results);
 
     let byteMatch = true;
-    const byteProblems = [];
     if (options.strict) {
       results.forEach((result, index) => {
         const file = goldenPath(scenario.id, index, results.length);
         if (!existsSync(file)) {
           byteMatch = false;
-          byteProblems.push(`missing golden file ${path.relative(ROOT, file)}`);
-          return;
-        }
-        if (readFileSync(file, 'utf8') !== result.stdout) {
+          problems.push(`missing golden file ${path.relative(ROOT, file)}`);
+        } else if (readFileSync(file, 'utf8') !== result.stdout) {
           byteMatch = false;
-          byteProblems.push(`stdout differs from ${path.relative(ROOT, file)}`);
+          problems.push(`stdout differs from ${path.relative(ROOT, file)}`);
         }
       });
     }
 
-    const passed = factsMatch && byteMatch;
-    const isRemediation = scenario.parity === 'quirk' && expected !== scenario.expectLegacy;
-    if (passed && isRemediation) remediated += 1;
+    const passed = factsMatch && byteMatch && problems.length === 0;
+    if (passed && remediates) remediated += 1;
 
     const badge = passed ? colour(GREEN, 'PASS') : colour(RED, 'FAIL');
-    const tag = isRemediation ? colour(YELLOW, ' [remediated]') : '';
+    const tag = remediates ? colour(YELLOW, ' [remediated]') : '';
     console.log(`${badge} ${scenario.id.padEnd(7)} ${scenario.title}${tag}`);
 
     if (!passed) {
@@ -176,7 +203,7 @@ async function commandVerify(options) {
         console.log(colour(DIM, '    expected vs actual facts:'));
         console.log(diffFacts(expected, actual));
       }
-      for (const message of byteProblems) console.log(colour(RED, `    ${message}`));
+      for (const message of problems) console.log(colour(RED, `    ${message}`));
       if (scenario.finding) console.log(colour(DIM, `    see docs/LEGACY-BEHAVIOR.md finding ${scenario.finding}`));
     } else if (options.verbose) {
       console.log(colour(DIM, `    ${actual.join(' | ')}`));

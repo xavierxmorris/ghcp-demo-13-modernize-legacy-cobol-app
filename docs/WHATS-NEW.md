@@ -21,7 +21,7 @@ found by running the program.
 | Original claim | Reality | Evidence |
 | --- | --- | --- |
 | The app prints `Current balance: 1000.00` | It prints `001000.00`, zero-padded | [`L-08`](LEGACY-BEHAVIOR.md#l-08) |
-| A three-tier design where `DataProgram` reads and writes the balance, per the sequence diagram | `data.cob` is dead code. It never matches an operation and returns having done nothing | [`L-10`](LEGACY-BEHAVIOR.md#l-10) |
+| A three-tier design where `DataProgram` reads and writes the balance, per the sequence diagram | `data.cob` is entered but matches neither branch, and has no `ELSE`, so every call returns having done nothing | [`L-10`](LEGACY-BEHAVIOR.md#l-10) |
 | `sudo apt-get install gnucobol` | Installs a transitional package pulling the 4.0 pre-release; on Ubuntu 20.04 it installs GnuCOBOL 2.2. Pin `gnucobol3` | `.github/workflows/ci.yml` |
 | `node-accounting-app/*` in `.gitignore` | Made it impossible to commit, review, test or CI the migration output | `.gitignore` |
 | The devcontainer pins `github.copilot@insiders` and `markdown-lint.markdownlinter` | Neither is a valid marketplace identifier; Copilot Chat was absent | `.devcontainer/devcontainer.json` |
@@ -34,7 +34,7 @@ The COBOL sources themselves are **unchanged**. They are the specification.
 
 ### An executable behavioural specification
 
-`spec/scenarios.json` — 24 scenarios covering the original 7 manual test cases plus 17
+`spec/scenarios.json` — 26 scenarios covering the original 7 manual test cases plus 19
 discovered by experiment. Each is `strict` (business behaviour) or `quirk` (a defect),
 and each quirk names a finding and a proposed modern behaviour.
 
@@ -89,15 +89,21 @@ Copilot cloud agent can *run* the legacy system. Without it the agent can only r
 about COBOL it cannot execute, which is the failure mode this repository exists to
 prevent.
 
-### CI that cannot be talked around
+### CI that checks the evidence
 
 `.github/workflows/ci.yml` runs parity on every pull request, and adds a
-`guard-recorded-artefacts` job that re-runs `npm run parity:record` and fails if the
-result differs from what was committed.
+`guard-recorded-artefacts` job that recompiles the COBOL, re-runs
+`npm run parity:record`, and fails if the result differs from what was committed, if a
+golden file is missing, or if an orphan golden file appears. It also fails outright on
+any change to a `.cob` file.
 
 That job exists because instructions are advisory. An agent — or a person — under
 pressure to turn a suite green can edit `expectLegacy` or a golden file and replace a
-failing test with a false assurance. The guard makes that mechanically impossible.
+failing test with a false assurance. The guard catches that.
+
+It is a **reproducibility check**, not provenance enforcement: it proves the committed
+evidence matches what the committed COBOL produces. Branch protection and `CODEOWNERS`
+remain the control for who may change the specification at all.
 
 ---
 
@@ -106,7 +112,7 @@ failing test with a false assurance. The guard makes that mechanically impossibl
 Things asserted in this repository were checked rather than assumed:
 
 - GnuCOBOL **3.1.2** and **4.0-early-dev** produce **byte-identical** output across all
-  24 scenarios, so the golden master is a property of the program, not the compiler.
+  26 scenarios, so the golden master is a property of the program, not the compiler.
 - `apt-get install gnucobol` on Ubuntu 24.04 resolves to a transitional package for
   GnuCOBOL 4.0-early-dev; Ubuntu 20.04, the base of `devcontainers/universal:2`, only
   offers GnuCOBOL 2.2. Hence the pin to `gnucobol3` and the new devcontainer base.

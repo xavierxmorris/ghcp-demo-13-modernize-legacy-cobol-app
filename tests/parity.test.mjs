@@ -6,25 +6,18 @@
  * demonstrably does.
  */
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync } from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import { describe, it } from 'node:test';
 import { factsForScenario } from '../parity/lib/facts.mjs';
-import { runScenario } from '../parity/lib/run.mjs';
+import { exitedCleanly, runScenario } from '../parity/lib/run.mjs';
 import { TARGETS } from '../parity/lib/targets.mjs';
-import { expectedFacts, loadSpec } from '../parity/lib/spec.mjs';
+import { expectedFacts, expectedGoldenFiles, GOLDEN_DIR, loadSpec, withIsolatedStore } from '../parity/lib/spec.mjs';
+import { existsSync, readdirSync } from 'node:fs';
+import path from 'node:path';
 
 const spec = loadSpec();
 
-async function factsFor(target, scenario) {
-  const dir = mkdtempSync(path.join(os.tmpdir(), 'parity-test-'));
-  try {
-    const results = await runScenario(target, scenario, { ACCOUNT_STORE: path.join(dir, 'account.json') });
-    return factsForScenario(results);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
+async function runIsolated(target, scenario) {
+  return withIsolatedStore((env) => runScenario(target, scenario, env));
 }
 
 describe('spec integrity', () => {
@@ -44,6 +37,20 @@ describe('spec integrity', () => {
     const ids = spec.scenarios.map((s) => s.id);
     assert.equal(new Set(ids).size, ids.length);
   });
+
+  it('the golden file set matches the specification exactly', () => {
+    const expected = expectedGoldenFiles(spec);
+    const missing = expected.filter((file) => !existsSync(file));
+    assert.deepEqual(missing, [], 'golden files named by the spec are missing');
+
+    // An orphan golden file means a scenario was renamed or removed without
+    // re-recording, leaving stale evidence in the repository.
+    const wanted = new Set(expected.map((file) => path.basename(file)));
+    const orphans = readdirSync(GOLDEN_DIR)
+      .filter((name) => name.endsWith('.txt'))
+      .filter((name) => !wanted.has(name));
+    assert.deepEqual(orphans, [], 'golden files exist that no scenario accounts for');
+  });
 });
 
 describe('Node.js port matches the specification (modernized policy)', () => {
@@ -52,9 +59,15 @@ describe('Node.js port matches the specification (modernized policy)', () => {
 
   for (const scenario of spec.scenarios) {
     it(`${scenario.id} ${scenario.title}`, { skip: unavailable ?? false }, async () => {
-      const actual = await factsFor(target, scenario);
-      const expected = expectedFacts(scenario, { targetId: 'node', policy: 'modernized' });
-      assert.deepEqual(actual, expected);
+      const results = await runIsolated(target, scenario);
+      for (const [index, result] of results.entries()) {
+        assert.ok(
+          exitedCleanly(result) || result.killedByHarness,
+          `session ${index + 1} exited with status ${result.code} / signal ${result.signal}: ${result.stderr}`,
+        );
+      }
+      const { facts: expected } = expectedFacts(scenario, { targetId: 'node', policy: 'modernized' });
+      assert.deepEqual(factsForScenario(results), expected);
     });
   }
 });
@@ -66,8 +79,8 @@ describe('legacy COBOL binary still matches its recorded golden master', () => {
 
   for (const scenario of spec.scenarios) {
     it(`${scenario.id} ${scenario.title}`, { skip: unavailable ?? false }, async () => {
-      const actual = await factsFor(target, scenario);
-      assert.deepEqual(actual, scenario.expectLegacy);
+      const results = await runIsolated(target, scenario);
+      assert.deepEqual(factsForScenario(results), scenario.expectLegacy);
     });
   }
 });

@@ -27,7 +27,7 @@ In Copilot cloud agent sessions this is already done for you by
 ## Verification loop — run this before you claim anything works
 
 ```bash
-npm test                 # 83 assertions: unit + Node parity + COBOL golden master
+npm test                 # 106 tests: unit + Node parity + COBOL golden master
 npm run parity:node      # just the migration check, with a readable diff
 ```
 

@@ -53,7 +53,7 @@ jobs:
         run: node parity/cli.mjs verify --target node --policy bug-for-bug || true
 
   guard-recorded-artefacts:
-    name: Recorded artefacts were not hand-edited
+    name: Recorded artefacts match the binary
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     timeout-minutes: 10
@@ -66,6 +66,20 @@ jobs:
         with:
           node-version: '22'
 
+      # The legacy sources are the specification. Changing them and the recorded
+      # baselines together would be self-consistent and would otherwise pass, so
+      # any .cob change is rejected here and must be an explicit, reviewed
+      # decision rather than a side effect of turning a suite green.
+      - name: The legacy COBOL sources must not change
+        run: |
+          changed=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD" -- '*.cob')
+          if [ -n "$changed" ]; then
+            echo "::error::The .cob files are the specification and must not be modified:"
+            echo "$changed"
+            exit 1
+          fi
+          echo "Legacy sources unchanged."
+
       - name: Install GnuCOBOL
         run: |
           sudo apt-get update
@@ -75,8 +89,9 @@ jobs:
         run: npm run build:cobol
 
       # If golden files or expectLegacy were edited by hand rather than recorded,
-      # re-recording produces a diff. This is the check that stops a red parity
-      # scenario being "fixed" by rewriting the evidence.
+      # re-recording produces a diff. This is a reproducibility check - it proves
+      # the committed evidence matches what the committed COBOL produces - not a
+      # permission system.
       - name: Re-record and require an identical result
         run: |
           npm run parity:record
@@ -87,4 +102,15 @@ jobs:
             git --no-pager diff -- spec/scenarios.json parity/golden
             exit 1
           fi
+          untracked=$(git status --porcelain --untracked-files=all -- parity/golden)
+          if [ -n "$untracked" ]; then
+            echo "::error::Untracked or orphan files under parity/golden:"
+            echo "$untracked"
+            exit 1
+          fi
           echo "Recorded artefacts match the binary."
+
+      # Fails if a golden file named by the spec is missing, or if parity/golden
+      # holds a file no scenario accounts for.
+      - name: Golden file set matches the specification
+        run: npm test -- --test-name-pattern='the golden file set matches the specification exactly'
