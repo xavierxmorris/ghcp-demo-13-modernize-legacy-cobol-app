@@ -6,7 +6,7 @@ Account Management System
 4. Exit
 --------------------------------
 Enter your choice (1-4): 
-Current balance: 001000.00
+Current balance: 009999.99
 --------------------------------
 Account Management System
 1. View Balance
