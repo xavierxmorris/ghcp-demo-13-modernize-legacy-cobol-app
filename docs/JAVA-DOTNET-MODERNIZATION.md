@@ -3,6 +3,11 @@
 Reviewed: **7 September 2026**. These are executable learning examples, not a
 production banking platform or a general COBOL transpiler.
 
+For taxation-office use cases, start with the
+[taxation knowledgebase](TAX-OFFICE-KNOWLEDGEBASE.md) and the separate
+[original-evidence pack](../examples/tax-office/README.md). The generic
+accounting program is not relabeled as a taxation-office legacy system.
+
 ## Recommendation for this repository family
 
 Use **one behavioral contract, independent target implementations, and small
@@ -174,6 +179,8 @@ a new language pass.
 
 Java and .NET store one unsigned integer-cent value followed by LF. Their
 defaults are `build/java-account.cents` and `build/dotnet-account.cents`.
+Reads accept an optional final LF, at most nine bytes, and no BOM or alternate
+encoding. Unexpected input is rejected rather than silently decoded or reset.
 `ACCOUNT_STORE` overrides the path, and the harness supplies a private path
 per scenario, shared only by that scenario's process restarts.
 

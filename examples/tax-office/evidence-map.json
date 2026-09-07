@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "evidence": "original-cobol-replay",
+  "baselineCommit": "c792abfec093ae410ba8518855733171bf9383db",
+  "scope": "Taxation-relevant engineering controls demonstrated by the original generic account-management COBOL. This is not a tax-law implementation or evidence of an ATO system.",
+  "sources": [
+    { "path": "main.cob", "sha256Lf": "fdc9bb210b1a18809cbb8ae1cded1997661a081a3fd01ba989b98cfb27177f98" },
+    { "path": "operations.cob", "sha256Lf": "bf1588199cf852fd99794800df6434624654b458b0f6df7d55110306a650217f" },
+    { "path": "data.cob", "sha256Lf": "2b1a0396eaa2122028f85989d9fbcfbbb318619a8c991074f556afa2072f3a21" }
+  ],
+  "groups": [
+    {
+      "id": "TAX-ENQUIRY",
+      "title": "Balance-enquiry mechanics",
+      "scenarioIds": ["TC-1.1", "TC-1.2"],
+      "sourceFiles": ["main.cob", "operations.cob", "data.cob"],
+      "sourceSymbols": ["MainProgram: WHEN 1", "Operations: TOTAL branch and FINAL-BALANCE"],
+      "javaFiles": ["java-accounting-app/src/Main.java", "java-accounting-app/src/Money.java", "java-accounting-app/src/AccountStore.java"],
+      "dotnetFiles": ["dotnet-accounting-app/Program.cs", "dotnet-accounting-app/Money.cs", "dotnet-accounting-app/AccountStore.cs"],
+      "taxRelevance": "Starting point for an enquiry migration after an approved tax-account field mapping.",
+      "limit": "The original has one generic balance, no taxpayer, tax type, account identifier, period, or authorization."
+    },
+    {
+      "id": "TAX-MOVEMENTS",
+      "title": "Credit/debit movement mechanics",
+      "scenarioIds": ["TC-2.1", "TC-2.2", "TC-3.1", "TC-3.2", "TC-3.3", "TC-3.4", "TC-3.5", "TC-5.1"],
+      "sourceFiles": ["operations.cob", "data.cob"],
+      "sourceSymbols": ["Operations: CREDIT and DEBIT branches", "FINAL-BALANCE >= AMOUNT"],
+      "javaFiles": ["java-accounting-app/src/Main.java", "java-accounting-app/src/Operations.java", "java-accounting-app/src/AccountStore.java"],
+      "dotnetFiles": ["dotnet-accounting-app/Program.cs", "dotnet-accounting-app/Operations.cs", "dotnet-accounting-app/AccountStore.cs"],
+      "taxRelevance": "Demonstrates why posting arithmetic, rejection, and state changes need replay evidence.",
+      "limit": "A legacy CREDIT increases this balance. Do not reinterpret it as a tax payment reducing debt without an authorized domain mapping."
+    },
+    {
+      "id": "TAX-AMOUNTS",
+      "title": "Amount representation, validation, and capacity",
+      "scenarioIds": ["Q-01", "Q-02", "Q-03", "Q-04", "Q-05", "Q-06", "Q-10", "Q-12", "Q-13", "Q-14"],
+      "sourceFiles": ["operations.cob"],
+      "sourceSymbols": ["AMOUNT PIC 9(6)V99", "FINAL-BALANCE PIC 9(6)V99", "ACCEPT AMOUNT", "ADD and SUBTRACT"],
+      "javaFiles": ["java-accounting-app/src/Money.java", "java-accounting-app/src/Operations.java"],
+      "dotnetFiles": ["dotnet-accounting-app/Money.cs", "dotnet-accounting-app/Operations.cs"],
+      "taxRelevance": "Protects amount meaning during modernization; the original recorded quirks make sign, precision, and width risks visible.",
+      "limit": "The capacity is the original sample's field width, not a statutory or real taxation-office limit."
+    },
+    {
+      "id": "TAX-LIFECYCLE",
+      "title": "Input and process-lifecycle controls",
+      "scenarioIds": ["TC-4.1", "Q-07", "Q-08", "Q-09"],
+      "sourceFiles": ["main.cob"],
+      "sourceSymbols": ["USER-CHOICE PIC 9", "ACCEPT USER-CHOICE", "MAIN-LOGIC", "STOP RUN"],
+      "javaFiles": ["java-accounting-app/src/Main.java"],
+      "dotnetFiles": ["dotnet-accounting-app/Program.cs"],
+      "taxRelevance": "Shows how EOF, malformed selections, and unattended execution can break a batch or operator workflow.",
+      "limit": "There is no real tax batch-file format, scheduler, restart checkpoint, or payment receipt protocol."
+    },
+    {
+      "id": "TAX-STATE",
+      "title": "State lifetime and storage seam",
+      "scenarioIds": ["TC-5.2", "Q-11"],
+      "sourceFiles": ["operations.cob", "data.cob"],
+      "sourceSymbols": ["Operations WORKING-STORAGE FINAL-BALANCE", "DataProgram PASSED-OPERATION PIC X(6)", "READ and WRITE calls"],
+      "javaFiles": ["java-accounting-app/src/AccountStore.java", "java-accounting-app/src/Main.java"],
+      "dotnetFiles": ["dotnet-accounting-app/AccountStore.cs", "dotnet-accounting-app/Program.cs"],
+      "taxRelevance": "Separates state preserved within one process from the declared modernized restart/persistence behavior.",
+      "limit": "Neither the original RAM balance nor the modern single-writer file is a transactional taxation ledger."
+    }
+  ],
+  "unprovenTaxCapabilities": [
+    "Taxpayer, branch, tax type, period, and PRN/account mapping",
+    "Receipt deduplication, idempotent posting, payment reversal, and bank reconciliation",
+    "Refund eligibility, cross-account offsetting, assessment, interest, and debt-collection rules",
+    "Effective-date/cutoff policy, authorization, audit, and production transaction/recovery semantics"
+  ]
+}

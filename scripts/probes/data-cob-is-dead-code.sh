@@ -6,7 +6,7 @@
 #
 # Requires GnuCOBOL. Writes only to a temporary directory; the repository's
 # .cob files are copied, never modified.
-set -uo pipefail
+set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 REPO="$PWD"
@@ -18,6 +18,18 @@ fi
 
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
+
+compile_probe() {
+    if ! cobc "$@" > "$WORK/compiler.log" 2>&1; then
+        cat "$WORK/compiler.log" >&2
+        return 1
+    fi
+    sed \
+        -e '/^<command-line>: warning: "_FORTIFY_SOURCE" redefined$/d' \
+        -e '/^<command-line>: note: this is the location of the previous definition$/d' \
+        "$WORK/compiler.log" >&2
+}
+
 cobc --version | head -1
 echo
 
@@ -60,8 +72,15 @@ cat > data.cob <<'COB'
            GOBACK.
 COB
 
-cobc -x main.cob operations.cob data.cob -o probe1 2>&1 | grep -viE 'fortify|previous definition'
-printf '%s\n' 2 200 1 4 | timeout 5 ./probe1 | grep -aE 'probe|balance' | cat -v | sed 's/^/    /'
+compile_probe -x main.cob operations.cob data.cob -o probe1
+printf '%s\n' 2 200 1 4 | timeout 5 ./probe1 > probe1.out
+if [[ "$(awk '/\[probe\] NO MATCH/ { n++ } END { print n+0 }' probe1.out)" -ne 3 ]] \
+    || grep -aq '\[probe\] matched' probe1.out; then
+    echo 'FAIL: DataProgram branch behavior differs from the recorded L-10 finding.' >&2
+    cat -v probe1.out >&2
+    exit 1
+fi
+grep -aE 'probe|balance' probe1.out | cat -v | sed 's/^/    /'
 echo
 echo "    ^@ is a NUL byte. Neither branch matches, and the original data.cob"
 echo "    has no ELSE, so both calls return having done nothing."
@@ -77,10 +96,18 @@ grep -n "STORAGE-BALANCE    PIC" data.cob | sed 's/^/    /'
 grep -n "FINAL-BALANCE      PIC" operations.cob | sed 's/^/    /'
 echo
 
-cobc -x main.cob operations.cob data.cob -o probe2 2>&1 | grep -viE 'fortify|previous definition'
-printf '%s\n' 1 4 | timeout 5 ./probe2 | grep -a 'balance' | sed 's/^/    /'
+compile_probe -x main.cob operations.cob data.cob -o probe2
+printf '%s\n' 1 4 | timeout 5 ./probe2 > probe2.out
+if ! grep -aFq 'Current balance: 001000.00' probe2.out; then
+    echo 'FAIL: The balance owner differs from the recorded L-10 finding.' >&2
+    cat -v probe2.out >&2
+    exit 1
+fi
+grep -a 'balance' probe2.out | sed 's/^/    /'
 echo
 echo "    007777.77 would mean DataProgram supplies the balance."
 echo "    001000.00 means it does not - the value comes from operations.cob's"
 echo "    own FINAL-BALANCE in WORKING-STORAGE, which is why it cannot survive"
 echo "    a restart (finding L-09)."
+echo
+echo 'PASS: L-10 branch and balance-owner assertions hold; original source files were not modified.'

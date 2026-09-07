@@ -100,5 +100,37 @@ for (const target of [TARGETS.java, TARGETS.dotnet]) {
         assert.deepEqual(readFileSync(env.ACCOUNT_STORE), invalid);
       });
     });
+
+    const incompatibleStores = [
+      ['UTF-8 BOM', Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from('100000\n')])],
+      ['UTF-16 BOM', Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from('100000\n', 'utf16le')])],
+      ['short UTF-8 BOM', Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from('1\n')])],
+      ['short UTF-16 BOM', Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from('1\n', 'utf16le')])],
+      ['oversized input', Buffer.alloc(64 * 1024, '1')],
+    ];
+    for (const [name, bytes] of incompatibleStores) {
+      it(`rejects an out-of-contract store (${name}) without rewriting it`, async () => {
+        await withIsolatedStore(async (env) => {
+          writeFileSync(env.ACCOUNT_STORE, bytes);
+          const [result] = await runScenario(target, { input: ['1', '4'] }, env);
+          assert.equal(result.code, 1);
+          assert.equal(result.killedByHarness, false);
+          assert.match(result.stderr, /Fatal:/);
+          assert.deepEqual(factsForScenario([result]), []);
+          assert.deepEqual(readFileSync(env.ACCOUNT_STORE), bytes);
+        });
+      });
+    }
+
+    for (const stored of ['99999999', '99999999\n']) {
+      it(`reads the largest valid store ${JSON.stringify(stored)}`, async () => {
+        await withIsolatedStore(async (env) => {
+          writeFileSync(env.ACCOUNT_STORE, stored);
+          const results = await runScenario(target, { input: ['1', '4'] }, env);
+          assert.ok(results.every(exitedCleanly));
+          assert.deepEqual(factsForScenario(results), ['balance:999999.99', 'exit']);
+        });
+      });
+    }
   });
 }

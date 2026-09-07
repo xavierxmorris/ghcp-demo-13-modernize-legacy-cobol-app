@@ -71,6 +71,22 @@ jobs:
       - name: Compile both ports, compare the shared scenarios, and check storage failures
         run: npm run test:ports
 
+      - name: Install the original-reference compiler for the taxation evidence gate
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gnucobol3
+
+      - name: Trace original COBOL evidence to both modern targets
+        run: npm run tax:check
+
+      - name: Upload original-source migration evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: original-cobol-taxation-evidence
+          path: build/tax-office/evidence-java-dotnet.json
+          if-no-files-found: error
+          retention-days: 7
+
   guard-recorded-artefacts:
     name: Recorded artefacts match the binary
     runs-on: ubuntu-latest

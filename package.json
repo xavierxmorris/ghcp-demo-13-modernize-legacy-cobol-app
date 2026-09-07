@@ -20,6 +20,9 @@
     "parity:java": "node parity/cli.mjs verify --target java",
     "parity:dotnet": "node parity/cli.mjs verify --target dotnet",
     "test:ports": "npm run build:ports && npm run parity:java && npm run parity:dotnet && node --test tests/ports.test.mjs tests/modern-sequences.test.mjs",
+    "tax:java": "node scripts/check-tax-office.mjs java",
+    "tax:dotnet": "node scripts/check-tax-office.mjs dotnet",
+    "tax:check": "node scripts/check-tax-office.mjs all",
     "test": "node --test",
     "test:watch": "node --test --watch"
   },

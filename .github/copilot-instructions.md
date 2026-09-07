@@ -14,6 +14,8 @@ or .NET **without regressing behaviour**. It is deliberately small so the intere
 - `java-accounting-app/`, `dotnet-accounting-app/` — independent Java 25 and .NET 10
   ports using the same oracle, with no application dependencies.
 - `docs/LEGACY-BEHAVIOR.md` — findings register (`L-01` … `L-10`), each empirically verified.
+- `examples/tax-office/` - source-to-scenario-to-port evidence mapping for the
+  original COBOL. It does not define a second oracle or a new tax application.
 
 ## The rule that matters most
 
@@ -38,6 +40,7 @@ npm run parity:cobol     # prove the COBOL still matches its own golden master
 npm run parity:node      # prove the Node port matches the spec (modernized policy)
 npm test                 # unit tests + both parity suites
 npm run test:ports       # rebuild Java/.NET and run their explicit gates
+npm run tax:check        # rebuild original COBOL and trace its cases to Java/.NET
 ```
 
 The COBOL parity suites skip automatically when `build/accountsystem` is absent, so

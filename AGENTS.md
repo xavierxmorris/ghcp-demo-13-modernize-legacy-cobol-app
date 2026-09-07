@@ -39,6 +39,16 @@ skipped target. Use `scripts/Dockerfile.modern` or the modernization devcontaine
 for all languages. See `docs/JAVA-DOTNET-MODERNIZATION.md`; preserve the original
 Node track and never infer fresh COBOL execution from a port-only comparison.
 
+## Taxation-office supplement
+
+Read `docs/TAX-OFFICE-KNOWLEDGEBASE.md` for taxation work. All runnable taxation
+examples must trace to the original COBOL, existing scenario IDs, and the same
+Java/.NET accounting ports. `npm run tax:java` / `npm run tax:dotnet` select one
+modern target; `tax:check` selects both. These gates rebuild/replay COBOL and
+write evidence only after success. Add `-- --docker` on Windows.
+Do not create another tax oracle or invent absent PRN/refund/offsetting behavior.
+Unsupported tax capabilities belong in the evidence-gap backlog.
+
 ## Hard rules
 
 1. **Do not modify `main.cob`, `operations.cob` or `data.cob`.** They are the

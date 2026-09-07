@@ -20,7 +20,15 @@ internal sealed partial class AccountStore
         string text;
         try
         {
-            text = File.ReadAllText(file, new UTF8Encoding(false, true));
+            using var input = File.OpenRead(file);
+            // Read one byte beyond the eight-digit, optional-LF contract without BOM sniffing.
+            Span<byte> bytes = stackalloc byte[10];
+            var count = input.ReadAtLeast(bytes, bytes.Length, throwOnEndOfStream: false);
+            if (count > 9)
+            {
+                throw new InvalidDataException("Account store exceeds the 9-byte UTF-8 contract.");
+            }
+            text = new UTF8Encoding(false, true).GetString(bytes[..count]);
         }
         catch (FileNotFoundException)
         {

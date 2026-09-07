@@ -7,6 +7,12 @@ Java 25, or .NET 10 without silently changing what it does**.
 The two independent managed-language ports use the same recorded scenarios as
 Node; the original Node workshop and presenter track remain available.
 
+**Taxation-office focus:** [original COBOL evidence, migration paths, and common edge cases](docs/TAX-OFFICE-KNOWLEDGEBASE.md).
+The [taxation evidence pack](examples/tax-office/README.md) rebuilds the original
+COBOL and replays its recorded cases against the existing Java/.NET ports.
+On Windows, start with `npm run tax:check -- --docker`. It does not invent
+tax rules or present unsupported tax capabilities as completed migrations.
+
 **Go deeper:** [WORKSHOP.md](WORKSHOP.md) adds a 75-minute characterization
 lab, a two-axis explanation of strictness, a targeted failure drill, and a
 remediation sign-off record. Node-only evidence is separated from fresh COBOL

@@ -57,5 +57,8 @@ jobs:
       - name: Compile the independent Java and .NET ports
         run: npm run build:ports
 
+      - name: Trace original COBOL evidence to both modern targets
+        run: npm run tax:check
+
       - name: Verify the toolchain end to end
         run: npm test

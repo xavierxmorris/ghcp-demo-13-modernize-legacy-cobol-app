@@ -18,9 +18,14 @@ It also fails on this 90-line program, in ways that are invisible without execut
 - A port would build the three-tier data layer the README describes — which the
   original never actually had, because `data.cob` never matches an operation (`L-10`).
 
-None of these are model failures. The model was asked to translate source it was never
-given the means to observe. Better models make this *worse*, not better: a more capable
-model writes a more convincing wrong answer.
+The model was asked to translate source without evidence of its runtime behavior.
+A fluent translation can still be wrong. This repository is not a benchmark
+showing that stronger models perform worse; its lesson is to ground generation
+and review in observable behavior.
+
+For taxation-office work, use the [taxation knowledgebase](TAX-OFFICE-KNOWLEDGEBASE.md)
+and its original-source evidence pack. Do not relabel the generic accounting
+program as a real taxation system or add independently invented tax expectations.
 
 ## The fix: make behaviour executable before you migrate
 
@@ -58,10 +63,10 @@ system instead of executing it — the exact failure this repository is built to
 
 ## The three-agent workflow
 
-Each agent has a different **tool boundary**, which is the point. Restricting tools is
-not ceremony; it is what stops an investigator quietly rewriting the evidence.
+Each agent has a different role and tool selection. These conventions guide
+the work; they are not a sandbox or a substitute for review and CI controls.
 
-### 1. `legacy-archaeologist` — read-only, establishes ground truth
+### 1. `legacy-archaeologist` — authors evidence, not application code
 
 Can read anything, add scenarios and record them. **Cannot** write application code or
 touch the `.cob` files. Its output is findings with recorded evidence.
@@ -100,13 +105,12 @@ node parity/cli.mjs verify --target node --policy modernized     # what you ship
 node parity/cli.mjs verify --target node --policy bug-for-bug    # what you changed
 ```
 
-The second command is the interesting one. Under `bug-for-bug` the port is required to
-reproduce the legacy defects, so **every failure is a behaviour you changed on
-purpose**. That failure list is your remediation manifest — the thing a business
-stakeholder actually needs to sign off, generated mechanically instead of remembered.
-
-If something appears in that list that you did not intend to change, it is a
-regression, and you found it without anyone reading a diff.
+Under `bug-for-bug`, the port is compared with legacy expectations, including
+defects. Failures establish differences, not intent. Compare the failed IDs
+with declared `expectModern` changes and findings, then classify unexplained
+differences as possible regressions, vocabulary drift, or environment issues.
+Only the reviewed, intended differences form a remediation manifest.
+The flag changes the oracle, not the application behavior.
 
 ## Guardrails that survive contact with an agent
 
@@ -136,14 +140,17 @@ the spec. So the important rules are checked mechanically:
 
 ## Running the exercise yourself
 
-The reference port is in `node-accounting-app/`. To do the migration from scratch:
+Keep the reference ports and recorded evidence intact. Use a separate exercise
+clone and branch rather than deleting maintained source:
 
 ```bash
-rm -rf node-accounting-app/src
-npm run parity:node          # fails: no port yet
+git clone https://github.com/xavierxmorris/ghcp-demo-13-modernize-legacy-cobol-app.git cobol-exercise
+cd cobol-exercise
+git switch -c exercise-tax-reconciliation
 ```
 
-Then work through the prompt files in order — `characterize-legacy`, `port-module`,
-`triage-parity-failure`, `migration-status` — and let the harness tell you when you are
-done. The recorded golden master stays valid throughout; it describes the COBOL, not
-the port.
+Work through `characterize-legacy`, the target-specific port prompt,
+`triage-parity-failure`, and `migration-status`. For the taxation supplement,
+start with `tax-office-seam` and one selected-language evidence gate. Every
+runnable example must remain tied to the original recorded COBOL oracle;
+unsupported tax behavior is a requirement/evidence gap, not a completed port.
