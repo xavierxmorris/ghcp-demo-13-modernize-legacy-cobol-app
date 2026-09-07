@@ -40,8 +40,12 @@ npm run parity:cobol     # prove the COBOL still matches its own golden master
 npm run parity:node      # prove the Node port matches the spec (modernized policy)
 npm test                 # unit tests + both parity suites
 npm run test:ports       # rebuild Java/.NET and run their explicit gates
+npm run verify:modern    # fresh original COBOL evidence against both modern targets
 npm run tax:check        # rebuild original COBOL and trace its cases to Java/.NET
 ```
+
+`verify:java` / `verify:dotnet` select one modern target. Add `-- --docker`
+on Windows. The `verify:*` and `tax:*` commands share the same evidence engine.
 
 The COBOL parity suites skip automatically when `build/accountsystem` is absent, so
 `npm test` works on a machine with no COBOL compiler.

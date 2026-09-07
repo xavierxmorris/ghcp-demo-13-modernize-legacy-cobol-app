@@ -1,311 +1,164 @@
-# Modernising a legacy COBOL accounting system with GitHub Copilot
+# COBOL to Java and .NET with GitHub Copilot
 
-A hands-on lab for migrating a COBOL account management system to **Node.js,
-Java 25, or .NET 10 without silently changing what it does**.
+[![CI](https://github.com/xavierxmorris/ghcp-demo-13-modernize-legacy-cobol-app/actions/workflows/ci.yml/badge.svg)](https://github.com/xavierxmorris/ghcp-demo-13-modernize-legacy-cobol-app/actions/workflows/ci.yml)
+[![Copilot setup](https://github.com/xavierxmorris/ghcp-demo-13-modernize-legacy-cobol-app/actions/workflows/copilot-setup-steps.yml/badge.svg)](https://github.com/xavierxmorris/ghcp-demo-13-modernize-legacy-cobol-app/actions/workflows/copilot-setup-steps.yml)
 
-**Java and .NET path:** [setup, runnable examples, and AI modernization guide](docs/JAVA-DOTNET-MODERNIZATION.md).
-The two independent managed-language ports use the same recorded scenarios as
-Node; the original Node workshop and presenter track remain available.
+**Modernize behavior you can demonstrate, not just code that looks plausible.**
+This hands-on lab preserves the original COBOL accounting program and compares
+independent **Java 25, .NET 10, and Node.js** implementations with its recorded
+behavior. GitHub Copilot assists the engineering; executable evidence keeps
+the work accountable.
 
-**Taxation-office focus:** [original COBOL evidence, migration paths, and common edge cases](docs/TAX-OFFICE-KNOWLEDGEBASE.md).
-The [taxation evidence pack](examples/tax-office/README.md) rebuilds the original
-COBOL and replays its recorded cases against the existing Java/.NET ports.
-On Windows, start with `npm run tax:check -- --docker`. It does not invent
-tax rules or present unsupported tax capabilities as completed migrations.
+[Start here](#start-here) · [Run it](#quick-start) · [Evidence](#follow-the-evidence) ·
+[Copilot value](#where-github-copilot-adds-value) · [Guides](#browse-the-guides) ·
+[Limits](#scope-and-honesty)
 
-**Go deeper:** [WORKSHOP.md](WORKSHOP.md) adds a 75-minute characterization
-lab, a two-axis explanation of strictness, a targeted failure drill, and a
-remediation sign-off record. Node-only evidence is separated from fresh COBOL
-replay; the legacy sources remain untouched.
+## Start here
 
-<img src="images/cobol_to_nodejs.png" alt="COBOL to Node.js" width="800"/>
-
-> This is a fork of [`continuous-copilot/modernize-legacy-cobol-app`](https://github.com/continuous-copilot/modernize-legacy-cobol-app),
-> rebuilt around an executable golden-master harness and the 2026 GitHub Copilot
-> customisation surface. See [`docs/WHATS-NEW.md`](docs/WHATS-NEW.md) for the full
-> list of changes and why each one was made.
-
----
-
-## The point of this repository
-
-A source-only translation can produce plausible code while changing behavior.
-This program contains several traps that deserve executable evidence rather
-than confidence in a review:
-
-| What a careful port produces | What the COBOL actually does | Finding |
+| I want to... | Start with | What I get |
 | --- | --- | --- |
-| Credit `999000.00` onto `1000.00` → `1000000.00` | → `0.00`, reported as a **successful credit** | [`L-01`](docs/LEGACY-BEHAVIOR.md#l-01) |
-| Credit `-100.00` → balance falls to `900.00` | → balance **rises** to `1100.00` | [`L-02`](docs/LEGACY-BEHAVIOR.md#l-02) |
-| A working three-tier data layer, per the docs | `data.cob` runs but **never matches an operation**, so it stores nothing | [`L-10`](docs/LEGACY-BEHAVIOR.md#l-10) |
-
-This repository is not a benchmark proving that a more capable model performs
-worse. Its narrower lesson is that reasoning and review should be grounded in
-observed legacy behavior, particularly around representation and boundary cases.
-
-So this repository makes the legacy system's behaviour **executable** first, and only
-then migrates it.
-
-```bash
-npm run parity:node
-# 26/26 scenarios matched, 14 legacy defect(s) deliberately remediated.
-# Parity holds.
-```
-
----
+| Run original COBOL against Java and .NET | [Quick start](#quick-start) | Fresh reference execution and a traceable comparison report |
+| Choose a target language or setup | [Java/.NET modernization guide](docs/JAVA-DOTNET-MODERNIZATION.md) | SDK/container options and a staged migration path |
+| Understand Copilot's practical value | [Copilot value guide](docs/COPILOT-VALUE.md) | Concrete tasks, artifacts, and responsibilities |
+| Use a taxation-office context | [Taxation knowledgebase](docs/TAX-OFFICE-KNOWLEDGEBASE.md) | Original-evidence mapping, common issues, and explicit gaps |
+| Inspect what the COBOL actually does | [Legacy findings](docs/LEGACY-BEHAVIOR.md) | Recorded cases, transcripts, and the linkage/state probe |
+| Teach or follow the lab | [Workshop](WORKSHOP.md) / [presenter run sheet](RUN-SHEET.md) | Participant exercises or the short Node-based presentation |
 
 ## Quick start
 
-Open in a [GitHub Codespace](https://codespaces.new/xavierxmorris/ghcp-demo-13-modernize-legacy-cobol-app)
-or the devcontainer — GnuCOBOL, Node and the Copilot extensions are configured — then:
+### Full original-evidence path: Windows or Docker
 
-```bash
-npm run build:cobol    # compile the legacy system
-npm test               # baseline tests plus available language targets; read skip counts
-```
-
-Locally you need Node 20.11+ and GnuCOBOL:
-
-```bash
-sudo apt-get update && sudo apt-get install -y gnucobol3   # Ubuntu/Debian
-brew install gnucobol                                      # macOS
-```
-
-> The Ubuntu package is `gnucobol3` or `gnucobol4`. Plain `gnucobol` is a transitional
-> package pulling the 4.0 pre-release, and on Ubuntu 20.04 it installs GnuCOBOL 2.2.
-> CI and the devcontainer pin 3.1.2. GnuCOBOL 3.1.2 and 4.0-early-dev were verified to
-> produce byte-identical output across all 26 scenarios.
-
-There is no `npm install`. The project has zero dependencies.
-
----
-
-## Commands
-
-```bash
-npm run parity:list      # every specified behaviour, strict vs quirk
-npm run parity:record    # re-record the golden master from the COBOL binary
-npm run parity:cobol     # prove the COBOL still matches its own golden master
-npm run parity:node      # prove the Node port matches the specification
-npm test                 # everything
-```
-
-The COBOL suites skip automatically when `build/accountsystem` is absent, so `npm test`
-works without a compiler.
-
-### Java and .NET examples
-
-With JDK 25 and .NET 10 SDK on PATH:
+Prerequisites: **Git, Node, and a running Linux Docker environment**. Node 24
+is the recommended starting point. You do not need local Java, .NET, or
+GnuCOBOL installations when using this route.
 
 ```powershell
-npm run test:ports        # build both ports, verify shared scenarios, exercise storage failures
-npm run parity:java       # Java against the recorded contract
-npm run parity:dotnet     # .NET against the recorded contract
+git clone https://github.com/xavierxmorris/ghcp-demo-13-modernize-legacy-cobol-app.git
+Set-Location ghcp-demo-13-modernize-legacy-cobol-app
+npm run verify:modern -- --docker
 ```
 
-Use the [multi-language container](docs/JAVA-DOTNET-MODERNIZATION.md#one-container-for-the-complete-exercise)
-to run COBOL and all three ports together without installing Java or GnuCOBOL
-on Windows. A port comparison is not a fresh COBOL replay; both are available.
+The command builds the toolchain image, rebuilds the **original COBOL**, runs
+the linkage/state probe, compiles Java and .NET, and compares the same original
+input scenarios. It does not fall back to a modern-port-only success.
 
----
+Choose one modern language if preferred:
 
-## The workflow
-
-```
-characterise  →  record  →  port  →  verify  →  declare
-```
-
-**Never assert what the legacy system does. Run it and record it.** Every claim in
-[`docs/LEGACY-BEHAVIOR.md`](docs/LEGACY-BEHAVIOR.md) is backed by a transcript in
-`parity/golden/`.
-
-Each scenario in [`spec/scenarios.json`](spec/scenarios.json) is either:
-
-- **`strict`** — real business behaviour a port must reproduce exactly;
-- **`quirk`** — a defect a port may reproduce (`--policy bug-for-bug`) or fix
-  (`--policy modernized`).
-
-Which gives you the trick that makes this whole thing work:
-
-```bash
-node parity/cli.mjs verify --target node --policy bug-for-bug
+```powershell
+npm run verify:java -- --docker
+npm run verify:dotnet -- --docker
 ```
 
-Under `bug-for-bug` the port is compared with legacy expectations, including
-quirks. Failures identify differences to investigate, not proof that each
-difference was intentional. Compare the failed scenario IDs with declared
-`expectModern` changes and findings, then obtain business sign-off. An
-undeclared difference may be a regression, vocabulary drift, or an environment
-problem; classify it before changing code or recorded expectations.
+On a configured Linux host, omit `--docker`. You need Node, GnuCOBOL,
+Bash/coreutils, and the selected SDK. The applications have **no external
+runtime or development packages**.
 
-Full rationale: [`docs/MIGRATION-PLAYBOOK.md`](docs/MIGRATION-PLAYBOOK.md).
+The report is written to `build/tax-office/evidence-java-dotnet.json`, or the
+corresponding single-target filename. That existing report location is shared
+with the [taxation evidence pack](examples/tax-office/README.md); the `tax:*`
+commands remain compatible aliases. The program is still generic accounting
+code, not a tax application.
 
----
+### Original Node workshop
 
-## The legacy system
-
-Three COBOL programs, treated as read-only. They are the specification.
-
-- `main.cob` — the menu loop
-- `operations.cob` — credit, debit and view
-- `data.cob` — *intended* to store the balance
-
-### Documented architecture
-
-This is what the original README describes, and what its sequence diagram shows:
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant MainProgram
-    participant Operations
-    participant DataProgram
-
-    User->>MainProgram: Select "Credit Account"
-    MainProgram->>Operations: CALL 'Operations' USING 'CREDIT'
-    Operations->>User: Enter credit amount
-    User->>Operations: 200.00
-    Operations->>DataProgram: CALL 'DataProgram' USING 'READ'
-    DataProgram-->>Operations: FINAL-BALANCE
-    Operations->>Operations: ADD AMOUNT TO FINAL-BALANCE
-    Operations->>DataProgram: CALL 'DataProgram' USING 'WRITE'
-    DataProgram-->>Operations: stored
-    Operations->>User: Amount credited. New balance
+```powershell
+.\go.ps1 -Check
 ```
 
-### Actual architecture
+This is the original COBOL/Node presenter track, not the complete Java/.NET
+evidence workflow. For a lightweight comparison with committed expectations:
 
-This is what the program does, verified by instrumenting `data.cob` and by changing its
-opening balance to `7777.77` and observing that the displayed balance did not move
-([`L-10`](docs/LEGACY-BEHAVIOR.md#l-10)):
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant MainProgram
-    participant Operations
-    participant DataProgram
-
-    User->>MainProgram: Select "Credit Account"
-    MainProgram->>Operations: CALL 'Operations' USING 'CREDIT'
-    Operations->>User: Enter credit amount
-    User->>Operations: 200.00
-    Operations->>DataProgram: CALL 'DataProgram' USING 'READ'
-    Note over DataProgram: receives "READ\0C", matches no branch,<br/>has no ELSE, returns having done nothing
-    DataProgram-->>Operations: (unchanged)
-    Operations->>Operations: ADD AMOUNT TO its own WORKING-STORAGE
-    Operations->>DataProgram: CALL 'DataProgram' USING 'WRITE'
-    Note over DataProgram: receives "WRITE\0", also no match
-    DataProgram-->>Operations: (nothing stored)
-    Operations->>User: Amount credited. New balance
+```powershell
+npm run parity:node
 ```
 
-`operations.cob` passes the 4-character literal `'READ'` into a `PIC X(6)` linkage
-item. The callee reads six bytes from a five-byte allocation, gets `READ` plus a NUL
-and a stray byte, matches neither branch, and — because `data.cob` has no `ELSE` —
-fails silently. `main.cob` avoids the same bug only because its literals happen to be
-padded to exactly six characters: `'TOTAL '`, `'CREDIT'`, `'DEBIT '`.
+That Node-only command does **not** constitute fresh COBOL replay. Full
+setup, native commands, and storage limitations are in the
+[Java/.NET guide](docs/JAVA-DOTNET-MODERNIZATION.md).
 
-The balance really lives in `operations.cob`'s own `WORKING-STORAGE`, which is why it
-cannot survive a restart ([`L-09`](docs/LEGACY-BEHAVIOR.md#l-09)).
+## Follow the evidence
 
-**This is the single best argument in the repository for characterisation testing.**
-Reading can suggest the mismatch; the recorded probe establishes its observed
-effect for the tested compiler and build.
+| Stage | Open this artifact | Responsibility |
+| --- | --- | --- |
+| Original source | [`main.cob`](main.cob), [`operations.cob`](operations.cob), [`data.cob`](data.cob) | Preserved reference programs |
+| Recorded behavior | [`spec/scenarios.json`](spec/scenarios.json), [`parity/golden/`](parity/golden) | Inputs, original observations, and declared modern expectations |
+| Modern implementations | [`java-accounting-app/`](java-accounting-app), [`dotnet-accounting-app/`](dotnet-accounting-app), [`node-accounting-app/`](node-accounting-app) | Independent ports, not wrappers calling the old program |
+| Traceability | [`evidence-map.json`](examples/tax-office/evidence-map.json) | Source symbols and scenario IDs mapped to modern files |
+| Run results | `build/tax-office/` and the [CI evidence artifact](https://github.com/xavierxmorris/ghcp-demo-13-modernize-legacy-cobol-app/actions/workflows/ci.yml) | Actual comparisons, source hashes, and runtime versions |
 
----
+### A small example with a large consequence
 
-## Copilot configuration
+For `Q-05`, the account starts at `1000.00` and receives a credit of `999000.00`:
 
-| Capability | Location |
+| Original recorded COBOL | Existing declared modern behavior |
 | --- | --- |
-| Repository instructions | [`.github/copilot-instructions.md`](.github/copilot-instructions.md) |
-| Agent instructions | [`AGENTS.md`](AGENTS.md) |
-| Path-specific instructions | [`.github/instructions/`](.github/instructions) |
-| Prompt files | [`.github/prompts/`](.github/prompts) |
-| Custom agents | [`.github/agents/`](.github/agents) |
-| Agent skill | [`.github/skills/cobol-parity-check/`](.github/skills/cobol-parity-check) |
-| Cloud agent environment | [`.github/workflows/copilot-setup-steps.yml`](.github/workflows/copilot-setup-steps.yml) |
+| Reports success and a `0.00` balance after field overflow | Rejects the credit and retains `1000.00` |
 
-Three custom agents form the workflow, each with a different scope and tool set:
+That difference is not something to hide. It is the declared `L-01`
+remediation, backed by the [original finding](docs/LEGACY-BEHAVIOR.md#l-01).
+The report separates **preserved normalized facts** from **existing declared
+remediations**. A failing comparison alone does not establish intent.
 
-- **`legacy-archaeologist`** — establishes ground truth by recording. Writes evidence
-  and findings, never application code.
-- **`migration-engineer`** — writes the port under the parity gate.
-- **`parity-auditor`** — read-only. Verifies the claims independently.
+For the deeper data-layer investigation, see
+[`L-10`](docs/LEGACY-BEHAVIOR.md#l-10) and its
+[assertion-backed probe](scripts/probes/data-cob-is-dead-code.sh).
 
-Handoffs between them are wired into the agent frontmatter.
+## Where GitHub Copilot adds value
 
-The boundaries are conventions plus CI, not sandboxes. The archaeologist has an
-editing tool because recording evidence requires one; what stops it rewriting the
-evidence is the `guard-recorded-artefacts` job, which re-records from the binary and
-fails on any difference.
+Use Copilot to help trace the source, propose characterization cases,
+implement a bounded change, and investigate a failing comparison. Do not ask
+it to invent the business rules or judge equivalence from a fluent explanation.
 
----
+| Engineering task | Repository support |
+| --- | --- |
+| Establish original behavior | [`legacy-archaeologist`](.github/agents/legacy-archaeologist.agent.md), source and recorded evidence |
+| Implement one supported target change | [`migration-engineer`](.github/agents/migration-engineer.agent.md), scoped instructions and port prompts |
+| Review differences and missing coverage | [`parity-auditor`](.github/agents/parity-auditor.agent.md), actual commands and comparison output |
+| Make the work repeatable | [`AGENTS.md`](AGENTS.md), [Copilot instructions](.github/copilot-instructions.md), [setup workflow](.github/workflows/copilot-setup-steps.yml), CI |
 
-## Repository layout
+**Copilot proposes and implements; the compiler/runtime executes; the gates
+produce evidence; people approve business meaning and intentional changes.**
+The [value guide](docs/COPILOT-VALUE.md) explains this division with concrete
+examples and distinguishes COBOL migration from Java/.NET framework upgrades.
 
-```
-main.cob  operations.cob  data.cob   the legacy system — read-only, it is the spec
-spec/scenarios.json                  executable behavioural contract
-parity/                              golden-master harness
-parity/golden/                       recorded COBOL transcripts — never hand-edited
-node-accounting-app/                 the original modern port
-java-accounting-app/                 independent Java 25 port
-dotnet-accounting-app/               independent .NET 10 port
-tests/                               unit tests + parity suites
-scripts/probes/                      re-runnable evidence for findings that need instrumentation
-docs/LEGACY-BEHAVIOR.md              findings register, L-01 … L-10
-docs/MIGRATION-PLAYBOOK.md           how and why to drive this with Copilot
-docs/JAVA-DOTNET-MODERNIZATION.md    target choice, setup, examples, and AI workflow
-docs/WHATS-NEW.md                    what changed from upstream
-TESTPLAN.md                          the stakeholder-facing test plan
-RUN-SHEET.md  PROMPTS.md             demo walkthrough and the prompts behind it
-go.ps1                               one-command runner (uses Docker when GnuCOBOL is absent)
-```
+## Browse the guides
 
----
+| Guide | Use it for |
+| --- | --- |
+| [Migration playbook](docs/MIGRATION-PLAYBOOK.md) | Characterize, record, port, compare, and declare |
+| [Java/.NET setup and target choices](docs/JAVA-DOTNET-MODERNIZATION.md) | Toolchains, language paths, and production boundaries |
+| [Taxation knowledgebase](docs/TAX-OFFICE-KNOWLEDGEBASE.md) | Taxation-relevant controls grounded in original evidence |
+| [Evidence-pack reference](examples/tax-office/README.md) | Fingerprints, gate behavior, report fields, and limitations |
+| [Legacy behavior register](docs/LEGACY-BEHAVIOR.md) | Findings `L-01` through `L-10` and their sources |
+| [Prompts](PROMPTS.md) | Copy-paste engineering tasks and reusable prompt files |
+| [Workshop](WORKSHOP.md) / [run sheet](RUN-SHEET.md) | Participant and presenter tracks |
+| [Test plan](TESTPLAN.md) / [changes from upstream](docs/WHATS-NEW.md) | Coverage intent and repository provenance |
 
-## Honesty notes
+## Scope and honesty
 
-Things this repository claims, and exactly how far the evidence goes:
+- This is a small generic accounting sample. Taxpayer identity, PRNs, refunds,
+  offsetting, assessments, and tax law are **not** implemented or proven.
+- COBOL-to-golden comparison is byte-exact. Modern targets use the existing
+  normalized fact contract and declared policy, not byte-identical formatting.
+- The pinned source and recorded cases cover specific compiler/build behavior,
+  not every COBOL dialect, CICS/VSAM estate, concurrency case, or production
+  transaction boundary.
+- The modern file stores are single-writer teaching implementations, not
+  transactional ledgers. Inspect availability/skips; unavailable is not passed.
+- Copilot instructions and review roles are not security sandboxes. This lab
+  does not establish a productivity percentage, model ranking, or compliance
+  certification.
 
-- **"Verified" means recorded.** Every finding is backed either by a scenario replayed
-  in CI, or by a re-runnable script in [`scripts/probes/`](scripts/probes). Both are
-  labelled in [`docs/LEGACY-BEHAVIOR.md`](docs/LEGACY-BEHAVIOR.md).
-- **The compiler claim is narrow.** GnuCOBOL 3.1.2 and 4.0-early-dev on Ubuntu 24.04
-  x86-64 produce byte-identical output across all 26 scenarios. Other compilers,
-  dialect flags (`-std=`) and locales are untested. The `L-10` byte-level explanation
-  in particular depends on how a compiler lays out literals passed by reference; the
-  observable outcome is what matters for the migration.
-- **The CI guard is a reproducibility check, not provenance enforcement.** It proves
-  the committed evidence matches what the committed COBOL produces, and it rejects any
-  `.cob` change outright. Branch protection and `CODEOWNERS` are the real control over
-  who may change the specification.
-- **Agent boundaries are conventions plus CI, not sandboxes.** The archaeologist agent
-  holds an editing tool because recording evidence needs one.
-- **The ports are single-writer teaching applications.** File replacement does
-  not make read-modify-write transactional or provide power-loss durability.
-  See the [managed-port storage limits](docs/JAVA-DOTNET-MODERNIZATION.md#persistence-is-deliberately-limited)
-  and [`node-accounting-app/README.md`](node-accounting-app/README.md).
-- **Coverage is incomplete, on purpose.** Concurrency, TTY interaction, dialect flags
-  and locale are listed as gaps at the end of `docs/LEGACY-BEHAVIOR.md` rather than
-  quietly omitted.
-- **The COBOL is unmodified.** Every defect described here is still present, because
-  the defects are the exercise.
+## Related modernization labs
 
-## A note on trust
+[COBOL/C boundary lab](https://github.com/xavierxmorris/ghcp-demo-12-cobol-c-interop)
+keeps the rule in COBOL. [CardDemo](https://github.com/xavierxmorris/azure-mainframe-modernization-carddemo)
+adds a read-only .NET application over preserved mainframe-shaped records.
+The [demo index](https://github.com/xavierxmorris/ghcp-demos) connects the learning paths.
 
-GitHub Copilot is an AI pair programmer. It may produce completions that are not
-perfect, safe, or suitable for production. Always review suggestions.
+## License and upstream
 
-This repository's position is that "always review" is necessary but not sufficient for
-legacy modernisation, because the failures shown above are invisible to review. What
-review needs is an **oracle** — a command that returns a truthful pass or fail. That is
-what `npm run parity:node` is for.
-
----
-
-## Licence
-
-MIT — see [LICENSE](LICENSE). Original work © the upstream authors.
+MIT - see [LICENSE](LICENSE). Derived from
+[`continuous-copilot/modernize-legacy-cobol-app`](https://github.com/continuous-copilot/modernize-legacy-cobol-app);
+original attribution is retained. This repository adds evidence-driven
+modernization examples and GitHub Copilot workflows.

@@ -3,6 +3,10 @@
 Reviewed: **7 September 2026**. These are executable learning examples, not a
 production banking platform or a general COBOL transpiler.
 
+Use the [front-page navigation](../README.md#start-here) to choose a track and
+the [Copilot value guide](COPILOT-VALUE.md) to understand who proposes changes,
+who supplies evidence, and who approves the business meaning.
+
 For taxation-office use cases, start with the
 [taxation knowledgebase](TAX-OFFICE-KNOWLEDGEBASE.md) and the separate
 [original-evidence pack](../examples/tax-office/README.md). The generic
@@ -67,6 +71,16 @@ Public framework questions can use documentation tools; use approved internal
 systems for private source and synthetic fixtures for examples.
 
 ### One container for the complete exercise
+
+For a one-command original-COBOL-to-Java/.NET evidence run:
+
+```powershell
+npm run verify:modern -- --docker
+```
+
+`verify:java` and `verify:dotnet` select one modern target. These are aliases
+of the same engine used by the `tax:*` evidence commands, not a separate
+oracle. The lower-level command sequence below also runs the broader suite.
 
 From this repository in PowerShell:
 

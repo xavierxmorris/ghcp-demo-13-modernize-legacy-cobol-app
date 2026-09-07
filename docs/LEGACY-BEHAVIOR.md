@@ -22,9 +22,10 @@ bash scripts/probes/data-cob-is-dead-code.sh      # a committed probe
 ```
 
 Recorded with GnuCOBOL 3.1.2 on Ubuntu 24.04 x86-64. GnuCOBOL 4.0-early-dev was
-checked against the same 26 scenarios and produced **byte-identical** output, so
-these findings are properties of the program rather than of one compiler. Behaviour
-under other compilers, dialect flags (`-std=`) or locales is untested.
+checked against the same 26 scenarios and produced **byte-identical** output.
+That establishes agreement for those recorded builds, not universal
+compiler-independent behavior. Other compilers, dialect flags (`-std=`),
+memory layouts, and locales remain untested.
 
 ---
 
@@ -153,15 +154,16 @@ someone must make explicitly — see `Q-04`'s `expectModern`.
 
 ### Sub-cent value is truncated, not rounded
 
-**Severity:** 🟡 Medium — small, systematic, one-directional loss.
+**Severity:** 🟡 Medium — sub-cent information is silently discarded.
 
 **Observed.** Credit `10.999` → balance `1010.99` (`Q-06`).
 Credit `0.005` → balance unchanged at `1000.00`, yet the program reports
 `Amount credited` (`Q-13`).
 
-**Why.** `PIC 9(6)V99` has two decimal places and there is no `ROUNDED` clause, so the
-third decimal is discarded. Truncation always favours the institution, which is
-precisely the pattern auditors look for.
+**Interpretation.** The receiving field has two decimal places, and the recorded
+credit inputs lose their sub-cent part rather than being rejected or rounded.
+These examples establish lost information on the credit path; they do not
+establish who benefits for every debit, tax posting, or other calculation.
 
 ---
 

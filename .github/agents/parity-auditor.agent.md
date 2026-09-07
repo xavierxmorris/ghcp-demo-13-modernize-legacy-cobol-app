@@ -22,7 +22,7 @@ Do not trust a summary, a diff, or a previous agent's report.
 npm run build:cobol
 npm run parity:cobol                                            # is the baseline self-consistent?
 npm run parity:node                                             # does the port hold under modernized policy?
-node parity/cli.mjs verify --target node --policy bug-for-bug   # what changed on purpose?
+node parity/cli.mjs verify --target node --policy bug-for-bug   # which recorded facts differ?
 npm test
 ```
 

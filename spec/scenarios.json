@@ -621,7 +621,7 @@
         "balance:1000.00",
         "exit"
       ],
-      "notes": "0.005 becomes 0.00 in a PIC 9(6)V99 field. The transaction moves nothing and the program still reports 'Amount credited'. Truncation always favours the institution, which is the pattern auditors look for.",
+      "notes": "0.005 becomes 0.00 in a PIC 9(6)V99 field. The transaction moves nothing and the program still reports 'Amount credited'. This establishes lost sub-cent information on the recorded credit path, not a universal direction of financial benefit.",
       "expectLegacy": [
         "credited:1000.00",
         "balance:1000.00",

@@ -87,7 +87,7 @@ Point at `parity/golden/` — real transcripts, captured from the binary, checke
 
 ---
 
-## Beat 4 — "And here is what it changed on purpose" (3 min) — *the money shot*
+## Beat 4 — "What changed, and where is it declared?" (3 min)
 
 ```powershell
 node parity/cli.mjs verify --target node --policy bug-for-bug
@@ -106,7 +106,7 @@ Then the one that always lands:
 bash scripts/probes/data-cob-is-dead-code.sh     # in the container, or a Codespace
 ```
 
-**Say:** "`data.cob` is the data layer. The README has a sequence diagram of it. It
+**Say:** "`data.cob` is the intended data layer; open the L-10 finding to inspect the evidence. It
 is called but matches neither operation. `operations.cob` passes a four-character `'READ'` into a six-character
 field, it matches neither branch, there is no `ELSE`, so it silently returns. Change
 its opening balance in the isolated probe to 7777.77 and the visible balance
@@ -117,8 +117,8 @@ Close on `.github/`:
 
 **Say:** "Instructions, prompt files, three agents, a skill — and
 `copilot-setup-steps.yml`, which installs a COBOL compiler into Copilot's cloud agent
-environment. That is the whole trick. An agent that can *run* the legacy system
-behaves completely differently to one that can only read it."
+environment. The agent can ground its hypotheses in actual output rather than
+relying only on a source-code explanation."
 
 ---
 

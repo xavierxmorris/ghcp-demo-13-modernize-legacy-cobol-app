@@ -39,14 +39,16 @@ npm run parity:node          # modernized policy: strict scenarios must match, q
 npm test                     # unit tests + both parity suites
 ```
 
-Then run the negative check, which should **fail** for every quirk you remediated:
+Then compare with the original policy; declared changes to normalized facts
+should appear as differences:
 
 ```bash
 node parity/cli.mjs verify --target node --policy bug-for-bug
 ```
 
-That failure list is your remediation manifest. If a scenario you did *not* intend to
-change appears in it, you have introduced a regression.
+Compare that failure list with the declared `expectModern` changes and findings.
+It is not automatically a remediation manifest: investigate any undeclared
+difference before labeling it intentional or changing the oracle.
 
 ## Output
 

@@ -3,6 +3,9 @@
 How to drive this migration with GitHub Copilot, and — more importantly — why the
 workflow is shaped this way.
 
+For the practical division of work between Copilot, the reference program,
+the automated gates, and reviewers, see [What Copilot adds](COPILOT-VALUE.md).
+
 ## The problem with "ask an LLM to port this"
 
 The naive workflow is: paste the COBOL into chat, ask for JavaScript, run it, eyeball

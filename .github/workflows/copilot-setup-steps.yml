@@ -58,7 +58,7 @@ jobs:
         run: npm run build:ports
 
       - name: Trace original COBOL evidence to both modern targets
-        run: npm run tax:check
+        run: npm run verify:modern
 
       - name: Verify the toolchain end to end
         run: npm test

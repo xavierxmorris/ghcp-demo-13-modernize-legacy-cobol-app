@@ -23,6 +23,9 @@
     "tax:java": "node scripts/check-tax-office.mjs java",
     "tax:dotnet": "node scripts/check-tax-office.mjs dotnet",
     "tax:check": "node scripts/check-tax-office.mjs all",
+    "verify:modern": "node scripts/check-tax-office.mjs all",
+    "verify:java": "node scripts/check-tax-office.mjs java",
+    "verify:dotnet": "node scripts/check-tax-office.mjs dotnet",
     "test": "node --test",
     "test:watch": "node --test --watch"
   },

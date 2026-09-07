@@ -33,6 +33,12 @@ npm run parity:node      # just the migration check, with a readable diff
 
 `npm test` is the gate. It is fast (a few seconds). Run it after every change.
 
+For the complete original-source Java/.NET evidence path, use
+`npm run verify:modern -- --docker` on Windows. `verify:java` and
+`verify:dotnet` select one modern target; the existing `tax:*` aliases remain
+available. These are aliases of the same original-evidence workflow, not
+another implementation or oracle.
+
 Java/.NET work additionally requires `npm run test:ports` (JDK 25 and .NET 10).
 It rebuilds both ports and fails on unavailable tools rather than accepting a
 skipped target. Use `scripts/Dockerfile.modern` or the modernization devcontainer
