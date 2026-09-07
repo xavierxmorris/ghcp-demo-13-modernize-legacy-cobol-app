@@ -2,6 +2,9 @@
 
 Ten minutes, four beats. The punchline is beat 4.
 
+For the longer participant lab and failure-classification rubric, use
+[WORKSHOP.md](WORKSHOP.md).
+
 ## 0. Setup (before the audience arrives)
 
 ```powershell
@@ -22,13 +25,12 @@ about a minute. **Do that before the demo, not during it.**
 Open `main.cob`, `operations.cob`, `data.cob`. Ninety lines, three files.
 
 **Say:** "The standard demo is: paste this into Copilot, ask for JavaScript, run it,
-looks fine, ship it. Any model here does that in about four seconds, and the code it
-writes is genuinely good."
+looks fine, ship it. A plausible translation is not the same as observed
+behavioral equivalence."
 
 Then open `README.md` and point at the table near the top.
 
-**Say:** "It is also wrong in at least three ways, and none of them are visible in
-code review."
+**Say:** "Here are three boundary cases where review needs executable evidence."
 
 ---
 
@@ -91,10 +93,9 @@ node parity/cli.mjs verify --target node --policy bug-for-bug
 Fourteen failures. Let them land before explaining.
 
 **Say:** "Under `bug-for-bug` the port is *required* to reproduce the legacy defects.
-So every failure on this screen is a behaviour somebody changed deliberately. That
-list is the sign-off document — generated, not remembered. And if something shows up
-in it that you did not intend to change, you just found a regression without reading a
-single diff."
+Compare every failure on this screen with the declared modern expectations and
+findings. That comparison becomes the sign-off document. Unexpected differences
+must be triaged rather than labelled intentional because they are red."
 
 Then the one that always lands:
 
@@ -103,10 +104,11 @@ bash scripts/probes/data-cob-is-dead-code.sh     # in the container, or a Codesp
 ```
 
 **Say:** "`data.cob` is the data layer. The README has a sequence diagram of it. It
-never runs. `operations.cob` passes a four-character `'READ'` into a six-character
+is called but matches neither operation. `operations.cob` passes a four-character `'READ'` into a six-character
 field, it matches neither branch, there is no `ELSE`, so it silently returns. Change
-its opening balance to 7777.77 and nothing happens. No human and no model finds that
-by reading. Ten seconds of running finds it immediately."
+its opening balance in the isolated probe to 7777.77 and the visible balance
+does not change. The probe is evidence for this build, not a universal claim
+about every compiler's memory layout."
 
 Close on `.github/`:
 
@@ -124,6 +126,6 @@ behaves completely differently to one that can only read it."
 | `cobc` not found on Windows | Expected. `go.ps1` uses Docker automatically; start Docker Desktop first |
 | Docker daemon not running | `.\go.ps1 -Check` says so explicitly; start it, or use a Codespace |
 | First run is slow | The lab image builds once. Pre-build with `.\go.ps1 -Check` |
-| `parity:cobol` fails | Something changed the `.cob` files. `git status` |
+| `parity:cobol` fails | Check source status, compiler/platform, recorded baseline, and full diagnostics before assigning a cause |
 | A scenario hangs | It should not — every process has a byte cap and a timeout (`L-07`) |
-| Want to reset the port | `git checkout node-accounting-app` |
+| Want a fresh exercise | Use a new clone or preserve the current branch; do not discard uncommitted work as a reset |

@@ -1,22 +1,24 @@
 # PROMPTS
 
 The prompts that produce this workflow. The reusable ones are committed as prompt
-files under [`.github/prompts/`](.github/prompts) — reference them with `/` in chat
-rather than pasting. These are here so you can read what they do without opening
+files under [`.github/prompts/`](.github/prompts) — invoke them in a supported
+VS Code extension-host session, or paste the body with explicit file context.
+Current Agent Host sessions do not use prompt files. These are here so you can read what they do without opening
 each file, and so the demo narration has something to point at.
 
 ---
 
 ## The anti-pattern, for contrast
 
-Run this first if you want to show the failure mode:
+Use this only in a disposable exercise clone if you want to assess a source-only
+translation. Keep the legacy files and recorded evidence read-only:
 
 ```text
 Convert main.cob, operations.cob and data.cob to a Node.js application.
 ```
 
-You will get clean, readable, well-structured JavaScript in seconds. It will
-also, reliably:
+A source-only translation may make these mistakes; measure the actual result
+instead of promising that every model will reproduce them:
 
 - use `balance += amount`, so it will not reproduce the overflow that destroys
   money (`L-01`) — an undeclared behaviour change;

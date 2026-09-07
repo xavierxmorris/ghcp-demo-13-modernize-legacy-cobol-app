@@ -3,6 +3,11 @@
 A hands-on lab for migrating a COBOL account management system to Node.js **without
 silently changing what it does**.
 
+**Go deeper:** [WORKSHOP.md](WORKSHOP.md) adds a 75-minute characterization
+lab, a two-axis explanation of strictness, a targeted failure drill, and a
+remediation sign-off record. Node-only evidence is separated from fresh COBOL
+replay; the legacy sources remain untouched.
+
 <img src="images/cobol_to_nodejs.png" alt="COBOL to Node.js" width="800"/>
 
 > This is a fork of [`continuous-copilot/modernize-legacy-cobol-app`](https://github.com/continuous-copilot/modernize-legacy-cobol-app),
@@ -14,9 +19,9 @@ silently changing what it does**.
 
 ## The point of this repository
 
-Ask any capable model to translate 90 lines of COBOL to JavaScript and you will get
-plausible, readable, confident code in seconds. On this program, that code is wrong in
-at least three ways that no reviewer would catch by reading it:
+A source-only translation can produce plausible code while changing behavior.
+This program contains several traps that deserve executable evidence rather
+than confidence in a review:
 
 | What a careful port produces | What the COBOL actually does | Finding |
 | --- | --- | --- |
@@ -24,9 +29,9 @@ at least three ways that no reviewer would catch by reading it:
 | Credit `-100.00` → balance falls to `900.00` | → balance **rises** to `1100.00` | [`L-02`](docs/LEGACY-BEHAVIOR.md#l-02) |
 | A working three-tier data layer, per the docs | `data.cob` runs but **never matches an operation**, so it stores nothing | [`L-10`](docs/LEGACY-BEHAVIOR.md#l-10) |
 
-Better models do not fix this. They make it worse, because a more capable model writes
-a more convincing wrong answer. The problem is not reasoning quality — it is that the
-model was asked to translate a program it had no way to *observe*.
+This repository is not a benchmark proving that a more capable model performs
+worse. Its narrower lesson is that reasoning and review should be grounded in
+observed legacy behavior, particularly around representation and boundary cases.
 
 So this repository makes the legacy system's behaviour **executable** first, and only
 then migrates it.
@@ -41,7 +46,7 @@ npm run parity:node
 
 ## Quick start
 
-Open in a [GitHub Codespace](https://codespaces.new/xavierxmorris/modernize-legacy-cobol-app)
+Open in a [GitHub Codespace](https://codespaces.new/xavierxmorris/ghcp-demo-13-modernize-legacy-cobol-app)
 or the devcontainer — GnuCOBOL, Node and the Copilot extensions are configured — then:
 
 ```bash
@@ -102,11 +107,12 @@ Which gives you the trick that makes this whole thing work:
 node parity/cli.mjs verify --target node --policy bug-for-bug
 ```
 
-Under `bug-for-bug` the port must reproduce the legacy defects, so **every failure is a
-behaviour you changed on purpose**. That failure list is your remediation manifest —
-the thing a business stakeholder signs off — generated mechanically rather than
-remembered. Anything in it you did not intend is a regression, found without anyone
-reading a diff.
+Under `bug-for-bug` the port is compared with legacy expectations, including
+quirks. Failures identify differences to investigate, not proof that each
+difference was intentional. Compare the failed scenario IDs with declared
+`expectModern` changes and findings, then obtain business sign-off. An
+undeclared difference may be a regression, vocabulary drift, or an environment
+problem; classify it before changing code or recorded expectations.
 
 Full rationale: [`docs/MIGRATION-PLAYBOOK.md`](docs/MIGRATION-PLAYBOOK.md).
 
@@ -180,7 +186,8 @@ The balance really lives in `operations.cob`'s own `WORKING-STORAGE`, which is w
 cannot survive a restart ([`L-09`](docs/LEGACY-BEHAVIOR.md#l-09)).
 
 **This is the single best argument in the repository for characterisation testing.**
-No amount of reading — by a human or a model — finds it. Ten seconds of running does.
+Reading can suggest the mismatch; the recorded probe establishes its observed
+effect for the tested compiler and build.
 
 ---
 

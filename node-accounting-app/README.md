@@ -28,8 +28,9 @@ validated amount — that absence is the root of findings `L-02` through `L-06`.
 
 ## What this port changes on purpose
 
-Fourteen legacy defects are remediated. Each is a **behaviour change** that a business
-stakeholder would need to sign off, not a refactor:
+The harness reports fourteen scenario-level remediations, not fourteen unique
+root causes. These are **behaviour changes** requiring business sign-off,
+not merely refactoring; several scenarios share a finding:
 
 | Finding | Legacy behaviour | This port |
 | --- | --- | --- |
@@ -50,8 +51,8 @@ Regenerate this list mechanically at any time:
 node ../parity/cli.mjs verify --target node --policy bug-for-bug
 ```
 
-Every failure it prints is an intentional change. Anything unexpected in that list is a
-regression.
+Compare each failed scenario with its declared modern expectation and finding.
+A failure alone does not prove intent: an unexpected difference needs triage.
 
 ## Design rules
 

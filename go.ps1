@@ -42,13 +42,13 @@ Manual walkthrough
 ------------------
  1. sudo apt-get install -y gnucobol3     # or: brew install gnucobol
  2. npm run build:cobol                   # compile the legacy system
- 3. npm run parity:list                   # 24 specified behaviours, strict vs quirk
+ 3. npm run parity:list                   # specified behaviours, strict vs quirk
  4. npm run parity:cobol -- --strict      # the COBOL still matches its golden master
  5. npm run parity:node                   # the port matches the specification
- 6. npm test                              # 83 assertions
+ 6. npm test                             # unit and parity suites; inspect skips
  7. node parity/cli.mjs verify --target node --policy bug-for-bug
-                                          # every failure here is a deliberate
-                                          # behaviour change: the remediation manifest
+                                          # compare each difference with the
+                                          # declared remediations and findings
 
 No npm install: the project has zero dependencies.
 '@
@@ -131,7 +131,7 @@ if ($Check) {
     if ((Invoke-Lab 'npm' @('test')) -ne 0) { Bad 'tests failed'; exit 1 }
 
     Step 'Remediation manifest'
-    Note 'Every failure below is a legacy defect the port fixes on purpose.'
+    Note 'Compare each difference below with the declared remediations and findings.'
     Invoke-Lab 'node' @('parity/cli.mjs', 'verify', '--target', 'node', '--policy', 'bug-for-bug') | Out-Null
 
     Write-Host ''
