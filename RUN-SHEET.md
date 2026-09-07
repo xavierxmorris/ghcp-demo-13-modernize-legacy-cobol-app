@@ -12,8 +12,11 @@ cd ghcp-demo-13-modernize-legacy-cobol-app
 .\go.ps1 -Check
 ```
 
-Expect: toolchain → compile → `26/26 Parity holds` twice → `106 pass`. Leave the
-terminal open.
+Expect: toolchain → compile → `26/26 Parity holds` twice, followed by passing
+tests. Available Java/.NET targets and seeded arithmetic cases add coverage;
+unavailable targets skip. Read the actual totals and availability messages.
+Leave the terminal open. For the multi-language track, use the
+[Java/.NET guide](docs/JAVA-DOTNET-MODERNIZATION.md).
 
 On Windows there is no GnuCOBOL, so `go.ps1` builds a container. First run takes
 about a minute. **Do that before the demo, not during it.**

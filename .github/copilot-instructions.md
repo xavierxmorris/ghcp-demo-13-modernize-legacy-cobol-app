@@ -2,8 +2,8 @@
 
 ## What this repository is
 
-A hands-on lab for migrating a COBOL account management system to Node.js **without
-regressing behaviour**. It is deliberately small so the interesting part is the
+A hands-on lab for migrating a COBOL account management system to Node.js, Java,
+or .NET **without regressing behaviour**. It is deliberately small so the interesting part is the
 *method*, not the domain.
 
 - `main.cob`, `operations.cob`, `data.cob` — the legacy system. **Treat as read-only.**
@@ -11,6 +11,8 @@ regressing behaviour**. It is deliberately small so the interesting part is the
 - `spec/scenarios.json` — the executable behavioural contract. Single source of truth.
 - `parity/` — the golden-master harness that replays scenarios against any target.
 - `node-accounting-app/` — the modern port.
+- `java-accounting-app/`, `dotnet-accounting-app/` — independent Java 25 and .NET 10
+  ports using the same oracle, with no application dependencies.
 - `docs/LEGACY-BEHAVIOR.md` — findings register (`L-01` … `L-10`), each empirically verified.
 
 ## The rule that matters most
@@ -35,10 +37,14 @@ npm run parity:record    # re-record the golden master from the COBOL binary
 npm run parity:cobol     # prove the COBOL still matches its own golden master
 npm run parity:node      # prove the Node port matches the spec (modernized policy)
 npm test                 # unit tests + both parity suites
+npm run test:ports       # rebuild Java/.NET and run their explicit gates
 ```
 
 The COBOL parity suites skip automatically when `build/accountsystem` is absent, so
 `npm test` works on a machine with no COBOL compiler.
+Unavailable managed targets also skip in ordinary `npm test`; their explicit
+`test:ports` gate must pass before claiming Java/.NET support. Follow
+`.github/instructions/managed-ports.instructions.md` for those targets.
 
 ## Parity levels — read this before changing the spec
 

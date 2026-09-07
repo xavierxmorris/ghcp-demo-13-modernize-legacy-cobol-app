@@ -27,11 +27,17 @@ In Copilot cloud agent sessions this is already done for you by
 ## Verification loop — run this before you claim anything works
 
 ```bash
-npm test                 # 106 tests: unit + Node parity + COBOL golden master
+npm test                 # baseline and available-target tests; inspect skips
 npm run parity:node      # just the migration check, with a readable diff
 ```
 
 `npm test` is the gate. It is fast (a few seconds). Run it after every change.
+
+Java/.NET work additionally requires `npm run test:ports` (JDK 25 and .NET 10).
+It rebuilds both ports and fails on unavailable tools rather than accepting a
+skipped target. Use `scripts/Dockerfile.modern` or the modernization devcontainer
+for all languages. See `docs/JAVA-DOTNET-MODERNIZATION.md`; preserve the original
+Node track and never infer fresh COBOL execution from a port-only comparison.
 
 ## Hard rules
 

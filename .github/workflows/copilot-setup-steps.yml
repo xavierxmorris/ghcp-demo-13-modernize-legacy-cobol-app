@@ -43,5 +43,19 @@ jobs:
       - name: Compile the legacy system
         run: npm run build:cobol
 
+      - name: Set up Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Compile the independent Java and .NET ports
+        run: npm run build:ports
+
       - name: Verify the toolchain end to end
         run: npm test

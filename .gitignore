@@ -16,3 +16,7 @@ Thumbs.db
 
 # Node port runtime state
 node-accounting-app/.account-store.json
+
+# Managed-language build intermediates
+dotnet-accounting-app/bin/
+dotnet-accounting-app/obj/

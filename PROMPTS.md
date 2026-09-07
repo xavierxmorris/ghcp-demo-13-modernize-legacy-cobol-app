@@ -66,6 +66,11 @@ Prompt file: [`/port-module`](.github/prompts/port-module.prompt.md)
 Requires the agent to list which scenarios cover the module *before* writing code, and
 gates on `npm run parity:node`.
 
+For Java or .NET, use
+[`port-java-dotnet`](.github/prompts/port-java-dotnet.prompt.md) and the
+[target-specific setup](docs/JAVA-DOTNET-MODERNIZATION.md). Select a target
+explicitly; do not use the Node-only prompt and assume it changes languages.
+
 ---
 
 ## 3. Diagnose a red scenario

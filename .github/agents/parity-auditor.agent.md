@@ -26,6 +26,12 @@ node parity/cli.mjs verify --target node --policy bug-for-bug   # what changed o
 npm test
 ```
 
+When Java or .NET is in scope, run `npm run test:ports` and compare the selected
+target's `--policy bug-for-bug` failures with the declared `expectModern`
+changes. The new targets do not call Node/COBOL; inspect their independent
+numeric and storage implementations. Builds may write ignored artifacts,
+but do not edit tracked source or the oracle.
+
 ## What you are looking for
 
 1. **Undeclared behaviour changes.** Cross-check the `bug-for-bug` failure list against

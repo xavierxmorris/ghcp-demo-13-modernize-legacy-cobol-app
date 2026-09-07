@@ -3,17 +3,23 @@
   "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "Agent-ready COBOL to Node.js modernisation lab with an executable golden-master parity harness.",
+  "description": "Agent-ready COBOL to Node.js, Java and .NET modernisation lab with a shared golden-master parity harness.",
   "engines": {
     "node": ">=20.11"
   },
   "scripts": {
     "build:cobol": "bash scripts/build-cobol.sh",
+    "build:java": "node scripts/build-ports.mjs java",
+    "build:dotnet": "node scripts/build-ports.mjs dotnet",
+    "build:ports": "node scripts/build-ports.mjs all",
     "parity:list": "node parity/cli.mjs list",
     "parity:record": "node parity/cli.mjs record --target cobol",
     "parity:cobol": "node parity/cli.mjs verify --target cobol",
     "parity:node": "node parity/cli.mjs verify --target node",
     "parity:node:modern": "node parity/cli.mjs verify --target node --policy modernized",
+    "parity:java": "node parity/cli.mjs verify --target java",
+    "parity:dotnet": "node parity/cli.mjs verify --target dotnet",
+    "test:ports": "npm run build:ports && npm run parity:java && npm run parity:dotnet && node --test tests/ports.test.mjs tests/modern-sequences.test.mjs",
     "test": "node --test",
     "test:watch": "node --test --watch"
   },

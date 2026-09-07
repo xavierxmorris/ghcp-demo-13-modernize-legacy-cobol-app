@@ -1,0 +1,27 @@
+{
+  "name": "COBOL to Java and .NET modernization",
+  "build": {
+    "dockerfile": "../../scripts/Dockerfile.modern",
+    "context": "../.."
+  },
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "8gb"
+  },
+  "postCreateCommand": "npm run build:cobol && npm run build:ports && npm test",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "GitHub.copilot",
+        "GitHub.copilot-chat",
+        "bitlang.cobol",
+        "vscjava.vscode-java-pack",
+        "ms-dotnettools.csdevkit"
+      ],
+      "settings": {
+        "files.eol": "\n",
+        "editor.formatOnSave": false
+      }
+    }
+  }
+}

@@ -53,24 +53,25 @@ describe('spec integrity', () => {
   });
 });
 
-describe('Node.js port matches the specification (modernized policy)', () => {
-  const target = TARGETS.node;
-  const unavailable = target.check();
+for (const target of [TARGETS.node, TARGETS.java, TARGETS.dotnet]) {
+  describe(`${target.label} matches the specification (modernized policy)`, () => {
+    const unavailable = target.check();
 
-  for (const scenario of spec.scenarios) {
-    it(`${scenario.id} ${scenario.title}`, { skip: unavailable ?? false }, async () => {
-      const results = await runIsolated(target, scenario);
-      for (const [index, result] of results.entries()) {
-        assert.ok(
-          exitedCleanly(result) || result.killedByHarness,
-          `session ${index + 1} exited with status ${result.code} / signal ${result.signal}: ${result.stderr}`,
-        );
-      }
-      const { facts: expected } = expectedFacts(scenario, { targetId: 'node', policy: 'modernized' });
-      assert.deepEqual(factsForScenario(results), expected);
-    });
-  }
-});
+    for (const scenario of spec.scenarios) {
+      it(`${scenario.id} ${scenario.title}`, { skip: unavailable ?? false }, async () => {
+        const results = await runIsolated(target, scenario);
+        for (const [index, result] of results.entries()) {
+          assert.ok(
+            exitedCleanly(result) || result.killedByHarness,
+            `session ${index + 1} exited with status ${result.code} / signal ${result.signal}: ${result.stderr}`,
+          );
+        }
+        const { facts: expected } = expectedFacts(scenario, { targetId: target.id, policy: 'modernized' });
+        assert.deepEqual(factsForScenario(results), expected);
+      });
+    }
+  });
+}
 
 describe('legacy COBOL binary still matches its recorded golden master', () => {
   const target = TARGETS.cobol;

@@ -86,10 +86,11 @@ not an accident.
 | 🟡 `L-06` | A zero movement is recorded and reported as successful | Refuse a zero amount | Audit |
 | ⚪ `L-08` | Balance shown as `001000.00` | Shown as `1,000.00` | Every user |
 
-**Note on `L-10`:** `data.cob` is never actually executed — see
-[`docs/LEGACY-BEHAVIOR.md#l-10`](docs/LEGACY-BEHAVIOR.md#l-10). Any statement that the
-current system has a separate data tier, including the original architecture diagram, is
-incorrect.
+**Note on `L-10`:** `data.cob` is called, but neither operation branch matches
+the supplied bytes, so it stores nothing — see
+[`docs/LEGACY-BEHAVIOR.md#l-10`](docs/LEGACY-BEHAVIOR.md#l-10).
+The current system does not have the functioning data tier shown in the
+original architecture diagram.
 
 ---
 
@@ -101,6 +102,12 @@ incorrect.
 | Recorded COBOL transcripts | `parity/golden/` |
 | Unit tests for the replacement | `tests/money.test.mjs`, `tests/operations.test.mjs` |
 | Harness self-tests | `tests/facts.test.mjs` |
-| Equivalence tests for both systems | `tests/parity.test.mjs` |
+| Shared parity tests for COBOL and the Node/Java/.NET ports | `tests/parity.test.mjs` |
+| Managed-port input and storage failure checks | `tests/ports.test.mjs` |
+| Seeded modern-policy arithmetic against a BigInt oracle | `tests/modern-sequences.test.mjs` |
 
-`npm test` runs all of it — 106 tests. The 26 COBOL parity tests skip automatically when `build/accountsystem` is absent.
+`npm test` includes the available language targets and seeded arithmetic cases.
+It skips COBOL when `build/accountsystem` is absent and managed targets
+when their compiled artifact or runtime is unavailable. Inspect pass and skip
+counts. `npm run test:ports` rebuilds Java/.NET and makes unavailable tools a
+failure. See [setup and evidence boundaries](docs/JAVA-DOTNET-MODERNIZATION.md).

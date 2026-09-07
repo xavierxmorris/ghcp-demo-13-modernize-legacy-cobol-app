@@ -5,6 +5,11 @@
 **Outcome:** a trace from a recorded legacy observation to a modern behavior,
 plus a defensible remediation decision.
 
+This is the original Node-focused workshop. The
+[Java/.NET extension](docs/JAVA-DOTNET-MODERNIZATION.md) uses the same scenarios
+with additional SDKs and an optional multi-language container; it does not
+replace this track. Read actual pass/skip counts when those targets are present.
+
 ## 1. Choose full or Node-only evidence - 8 minutes
 
 The repository requires **Node >=20.11** and has no npm dependencies.

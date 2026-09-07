@@ -1,7 +1,11 @@
 # Modernising a legacy COBOL accounting system with GitHub Copilot
 
-A hands-on lab for migrating a COBOL account management system to Node.js **without
-silently changing what it does**.
+A hands-on lab for migrating a COBOL account management system to **Node.js,
+Java 25, or .NET 10 without silently changing what it does**.
+
+**Java and .NET path:** [setup, runnable examples, and AI modernization guide](docs/JAVA-DOTNET-MODERNIZATION.md).
+The two independent managed-language ports use the same recorded scenarios as
+Node; the original Node workshop and presenter track remain available.
 
 **Go deeper:** [WORKSHOP.md](WORKSHOP.md) adds a 75-minute characterization
 lab, a two-axis explanation of strictness, a targeted failure drill, and a
@@ -51,7 +55,7 @@ or the devcontainer — GnuCOBOL, Node and the Copilot extensions are configured
 
 ```bash
 npm run build:cobol    # compile the legacy system
-npm test               # 106 tests (26 skip without a COBOL compiler)
+npm test               # baseline tests plus available language targets; read skip counts
 ```
 
 Locally you need Node 20.11+ and GnuCOBOL:
@@ -82,6 +86,20 @@ npm test                 # everything
 
 The COBOL suites skip automatically when `build/accountsystem` is absent, so `npm test`
 works without a compiler.
+
+### Java and .NET examples
+
+With JDK 25 and .NET 10 SDK on PATH:
+
+```powershell
+npm run test:ports        # build both ports, verify shared scenarios, exercise storage failures
+npm run parity:java       # Java against the recorded contract
+npm run parity:dotnet     # .NET against the recorded contract
+```
+
+Use the [multi-language container](docs/JAVA-DOTNET-MODERNIZATION.md#one-container-for-the-complete-exercise)
+to run COBOL and all three ports together without installing Java or GnuCOBOL
+on Windows. A port comparison is not a fresh COBOL replay; both are available.
 
 ---
 
@@ -226,11 +244,14 @@ main.cob  operations.cob  data.cob   the legacy system — read-only, it is the 
 spec/scenarios.json                  executable behavioural contract
 parity/                              golden-master harness
 parity/golden/                       recorded COBOL transcripts — never hand-edited
-node-accounting-app/                 the modern port
+node-accounting-app/                 the original modern port
+java-accounting-app/                 independent Java 25 port
+dotnet-accounting-app/               independent .NET 10 port
 tests/                               unit tests + parity suites
 scripts/probes/                      re-runnable evidence for findings that need instrumentation
 docs/LEGACY-BEHAVIOR.md              findings register, L-01 … L-10
 docs/MIGRATION-PLAYBOOK.md           how and why to drive this with Copilot
+docs/JAVA-DOTNET-MODERNIZATION.md    target choice, setup, examples, and AI workflow
 docs/WHATS-NEW.md                    what changed from upstream
 TESTPLAN.md                          the stakeholder-facing test plan
 RUN-SHEET.md  PROMPTS.md             demo walkthrough and the prompts behind it
@@ -257,8 +278,10 @@ Things this repository claims, and exactly how far the evidence goes:
   who may change the specification.
 - **Agent boundaries are conventions plus CI, not sandboxes.** The archaeologist agent
   holds an editing tool because recording evidence needs one.
-- **The port is single-process.** Writes are atomic; the read-modify-write is not
-  transactional. See [`node-accounting-app/README.md`](node-accounting-app/README.md).
+- **The ports are single-writer teaching applications.** File replacement does
+  not make read-modify-write transactional or provide power-loss durability.
+  See the [managed-port storage limits](docs/JAVA-DOTNET-MODERNIZATION.md#persistence-is-deliberately-limited)
+  and [`node-accounting-app/README.md`](node-accounting-app/README.md).
 - **Coverage is incomplete, on purpose.** Concurrency, TTY interaction, dialect flags
   and locale are listed as gaps at the end of `docs/LEGACY-BEHAVIOR.md` rather than
   quietly omitted.
